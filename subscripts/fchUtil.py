@@ -91,48 +91,66 @@ class BinaryWriter:
 
 # unpack .fch to .json
 
-def decompile_fch(fch_path: str, json_path: str):
+def decompile_fch(fch_path: str) -> dict:
     print(f"Reading binary save: {fch_path}")
+
     with open(fch_path, "rb") as f:
         file_bytes = f.read()
 
     file_reader = BinaryReader(file_bytes)
+
     zpackage_len = file_reader.read_int32()
     zpackage_bytes = file_reader.read_bytes(zpackage_len)
-    
+
     # checksum validation
     hash_len = file_reader.read_int32()
     stored_hash = file_reader.read_bytes(hash_len)
 
-    # verify integrity, klinoff certified
     calculated_hash = hashlib.sha512(zpackage_bytes).digest()
+
     if calculated_hash != stored_hash:
-        print("Warning: File SHA-512 checksum mismatch. Save may be corrupted, but we'll try to parse it anyway.")
+        print(
+            "Warning: File SHA-512 checksum mismatch. "
+            "Save may be corrupted, but we'll try to parse it anyway."
+        )
 
     pkg = BinaryReader(zpackage_bytes)
+
     save_data = {}
 
     version = pkg.read_int32()
     save_data["version"] = version
-    
+
     if version != 43:
-        print(f"Warning: This script is configured for Version 43. Attempting to parse Version {version} anyway...")
+        print(
+            f"Warning: This script is configured for Version 43. "
+            f"Attempting to parse Version {version} anyway..."
+        )
 
-    # 1. read stats and skills
+    # 1. stats
     stat_count = pkg.read_int32()
-    save_data["stats"] = [pkg.read_float() for _ in range(stat_count)]
+    save_data["stats"] = [
+        pkg.read_float()
+        for _ in range(stat_count)
+    ]
 
-    # 2. first spawn boolean
+    # 2. first spawn
     save_data["first_spawn"] = pkg.read_bool()
 
     # 3. world data
     world_count = pkg.read_int32()
+
     worlds = []
+
     for _ in range(world_count):
+
         world = {}
+
         world["world_id"] = pkg.read_long()
+
         world["have_custom_spawn"] = pkg.read_bool()
         world["spawn_point"] = pkg.read_vector3()
+
         world["have_logout_point"] = pkg.read_bool()
         world["logout_point"] = pkg.read_vector3()
 
@@ -141,52 +159,88 @@ def decompile_fch(fch_path: str, json_path: str):
             world["death_point"] = pkg.read_vector3()
 
         world["home_point"] = pkg.read_vector3()
+
         has_map_data = pkg.read_bool()
-        world["map_data_hex"] = pkg.read_byte_array().hex() if has_map_data else None
+
+        world["map_data_hex"] = (
+            pkg.read_byte_array().hex()
+            if has_map_data
+            else None
+        )
+
         worlds.append(world)
+
     save_data["worlds"] = worlds
 
-    # 4. char info
+    # 4. character info
     save_data["character_name"] = pkg.read_string()
     save_data["player_id"] = pkg.read_long()
     save_data["start_seed"] = pkg.read_string()
 
-    # 5. metadata (v38+)
+    # 5. metadata
     save_data["used_cheats"] = pkg.read_bool()
     save_data["date_created_unix"] = pkg.read_long()
 
     # known worlds
-    known_worlds_count = pkg.read_int32()
-    save_data["known_worlds"] = {pkg.read_string(): pkg.read_float() for _ in range(known_worlds_count)}
+    count = pkg.read_int32()
+
+    save_data["known_worlds"] = {
+        pkg.read_string(): pkg.read_float()
+        for _ in range(count)
+    }
 
     # known world keys
-    known_keys_count = pkg.read_int32()
-    save_data["known_world_keys"] = {pkg.read_string(): pkg.read_float() for _ in range(known_keys_count)}
+    count = pkg.read_int32()
 
-    # known console commands
-    known_cmds_count = pkg.read_int32()
-    save_data["known_commands"] = {pkg.read_string(): pkg.read_float() for _ in range(known_cmds_count)}
+    save_data["known_world_keys"] = {
+        pkg.read_string(): pkg.read_float()
+        for _ in range(count)
+    }
 
-    # v42+ stats dictionaries
+    # known commands
+    count = pkg.read_int32()
+
+    save_data["known_commands"] = {
+        pkg.read_string(): pkg.read_float()
+        for _ in range(count)
+    }
+
+    # v42+
     if version >= 42:
-        enemy_stats_count = pkg.read_int32()
-        save_data["enemy_stats"] = {pkg.read_string(): pkg.read_float() for _ in range(enemy_stats_count)}
 
-        pickup_stats_count = pkg.read_int32()
-        save_data["item_pickup_stats"] = {pkg.read_string(): pkg.read_float() for _ in range(pickup_stats_count)}
+        count = pkg.read_int32()
 
-        craft_stats_count = pkg.read_int32()
-        save_data["item_craft_stats"] = {pkg.read_string(): pkg.read_float() for _ in range(craft_stats_count)}
+        save_data["enemy_stats"] = {
+            pkg.read_string(): pkg.read_float()
+            for _ in range(count)
+        }
 
-    # 6. player data
+        count = pkg.read_int32()
+
+        save_data["item_pickup_stats"] = {
+            pkg.read_string(): pkg.read_float()
+            for _ in range(count)
+        }
+
+        count = pkg.read_int32()
+
+        save_data["item_craft_stats"] = {
+            pkg.read_string(): pkg.read_float()
+            for _ in range(count)
+        }
+
+    # 6. nested player data
     has_player_data = pkg.read_bool()
-    save_data["player_data_hex"] = pkg.read_byte_array().hex() if has_player_data else None
 
-    # output to json
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(save_data, f, indent=4)
-    print(f"Successfully unpacked save! JSON created at: {json_path}")
+    save_data["player_data_hex"] = (
+        pkg.read_byte_array().hex()
+        if has_player_data
+        else None
+    )
 
+    print("Successfully unpacked save.")
+
+    return save_data
 # .json to .fch
 
 def compile_fch(json_path: str, fch_path: str):

@@ -2,3 +2,7 @@
 *.json
 *.txt
 *.fch
+*/__pycache__
+
+!info.txt
+!requirements.txt
