@@ -4,6 +4,9 @@
 *.fch
 */__pycache__
 *.gif
+/build
+/dist
+*.spec
 
 !info.txt
 !requirements.txt
