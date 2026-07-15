@@ -31,7 +31,7 @@ Make sure you have **Python 3.9+** installed on your system.
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/miskamero/VikingEditor.git](https://github.com/miskamero/VikingEditor.git)
+git clone https://github.com/miskamero/VikingEditor.git
 cd VikingEditor
 ```
 
