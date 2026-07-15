@@ -1,4 +1,4 @@
-# Valheim Editor (.fch)
+# VikingEditor (.fch)
 
 An interactive, desktop-based GUI tool written in Python and PySide6 to safely decompile, edit, sign, and recompile Valheim character save files (`.fch`). 
 
@@ -12,6 +12,7 @@ No more dealing with complex hex editors or worrying about breaking your charact
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [Disclaimer](#disclaimer)
+- [License](LICENSE)
 
 ## Features
 

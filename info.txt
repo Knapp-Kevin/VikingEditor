@@ -7,4 +7,6 @@ Made by miskamero on
 <a href="https://github.com/miskamero/">GitHub</a>
 </p>
 
+and Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> license.
+
 <p>Enjoy :)</p>
