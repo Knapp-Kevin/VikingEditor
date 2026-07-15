@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.player_data = None     # Decoded character attributes dict
         self.current_fch = None
 
-        self.setWindowTitle("Valheim Character Editor")
+        self.setWindowTitle("Viking Editor")
         self.resize(1200, 800)
 
         central = QWidget()

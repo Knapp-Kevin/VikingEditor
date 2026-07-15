@@ -3,6 +3,7 @@
 *.txt
 *.fch
 */__pycache__
+*.gif
 
 !info.txt
 !requirements.txt
