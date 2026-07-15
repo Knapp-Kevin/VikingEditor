@@ -7,6 +7,11 @@ No more dealing with complex hex editors or worrying about breaking your charact
 ## Table of Contents
 - [Features](#features)
 - [Installation & Setup](#installation--setup)
+- [How to Use](#how-to-use)
+- [How to find your `.fch` files](#how-to-find-your-fch-files)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [Disclaimer](#disclaimer)
 
 ## Features
 
