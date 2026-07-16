@@ -16,7 +16,7 @@ VALHEIM_SKILLS = {
     14: "Crossbows",
     100: "Jump",
     101: "Sneak",
-    102: "Sneak",
+    102: "Run",
     103: "Swim",
     104: "Fishing",
     105: "Cooking",
