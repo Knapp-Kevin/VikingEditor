@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
     QLabel,
 )
 from PySide6.QtGui import QColor, QPalette
+from data.beards import VALHEIM_BEARDS
+from data.hairs import VALHEIM_HAIRS
 
 class AppearanceTab(QWidget):
     def __init__(self):
@@ -27,12 +29,14 @@ class AppearanceTab(QWidget):
         self.model_combo.addItem("Female (Model 1)", 1)
 
         self.hair_combo = QComboBox()
-        hairs = ["HairNone"] + [f"Hair{i}" for i in range(1, 15)]
-        self.hair_combo.addItems(hairs)
+
+        for hair_id, hair_name in VALHEIM_HAIRS.items():
+            self.hair_combo.addItem(hair_name, hair_id)
 
         self.beard_combo = QComboBox()
-        beards = ["BeardNone"] + [f"Beard{i}" for i in range(1, 11)]
-        self.beard_combo.addItems(beards)
+
+        for beard_id, beard_name in VALHEIM_BEARDS.items():
+            self.beard_combo.addItem(beard_name, beard_id)
 
         style_layout.addRow("Gender Model:", self.model_combo)
         style_layout.addRow("Hair Style:", self.hair_combo)
@@ -98,18 +102,20 @@ class AppearanceTab(QWidget):
 
         # 2. Hair and Beard styles
         hair_style = self.player_data.get("hair", "HairNone")
-        hair_idx = self.hair_combo.findText(hair_style)
+        hair_idx = self.hair_combo.findData(hair_style)
+
         if hair_idx != -1:
             self.hair_combo.setCurrentIndex(hair_idx)
         else:
-            self.hair_combo.setEditText(hair_style) # In case of modded hairs
+            self.hair_combo.setCurrentIndex(0)
 
         beard_style = self.player_data.get("beard", "BeardNone")
-        beard_idx = self.beard_combo.findText(beard_style)
+        beard_idx = self.beard_combo.findData(beard_style)
+
         if beard_idx != -1:
             self.beard_combo.setCurrentIndex(beard_idx)
         else:
-            self.beard_combo.setEditText(beard_style)
+            self.beard_combo.setCurrentIndex(0)
 
         # 3. Colors (0.0 - 1.0 floats to 0 - 255 ints)
         self.current_skin_rgb = self.player_data.get("skin_color", [1.0, 1.0, 1.0])
@@ -152,7 +158,7 @@ class AppearanceTab(QWidget):
             return
 
         self.player_data["model_index"] = self.model_combo.currentData()
-        self.player_data["hair"] = self.hair_combo.currentText()
-        self.player_data["beard"] = self.beard_combo.currentText()
+        self.player_data["hair"] = self.hair_combo.currentData()
+        self.player_data["beard"] = self.beard_combo.currentData()
         self.player_data["skin_color"] = self.current_skin_rgb
         self.player_data["hair_color"] = self.current_hair_rgb

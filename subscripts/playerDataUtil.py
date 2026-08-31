@@ -275,13 +275,34 @@ def pack_player_data_hex(data: dict) -> str:
         pkg.write_string(v)
 
     # Appearance
+    # pkg.write_string(data.get("beard", ""))
+    # pkg.write_string(data.get("hair", ""))
+    # for x in data.get("skin_color", [1.0, 1.0, 1.0]):
+    #     pkg.write_float(x)
+    # for x in data.get("hair_color", [1.0, 1.0, 1.0]):
+    #     pkg.write_float(x)
+    # pkg.write_int32(data.get("model_index", 0))
+    appearance_start = pkg.stream.tell()
+
     pkg.write_string(data.get("beard", ""))
     pkg.write_string(data.get("hair", ""))
+
     for x in data.get("skin_color", [1.0, 1.0, 1.0]):
         pkg.write_float(x)
+
     for x in data.get("hair_color", [1.0, 1.0, 1.0]):
         pkg.write_float(x)
+
     pkg.write_int32(data.get("model_index", 0))
+
+    appearance_end = pkg.stream.tell()
+
+    appearance_bytes = pkg.get_bytes()[appearance_start:appearance_end]
+
+    # print("=== APPEARANCE BINARY ===")
+    # print("Beard:", repr(data.get("beard")))
+    # print("Hair:", repr(data.get("hair")))
+    # print("Bytes:", appearance_bytes.hex(" "))
 
     # Foods
     foods = data.get("foods", [])

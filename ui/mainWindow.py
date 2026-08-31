@@ -222,6 +222,16 @@ class MainWindow(QMainWindow):
                 self, "Success", 
                 f"Character save compiled, signed, and saved successfully!\n\nLocation:\n{filename}"
             )
+
+            # QMessageBox.information(
+            #     self, "Debug Info",
+            #     f"Model Index: {self.player_data.get('model_index')}\n"
+            #     f"Hair Style: {repr(self.player_data.get('hair'))}\n"
+            #     f"Beard Style: {repr(self.player_data.get('beard'))}\n"
+            #     f"Skin Color: {self.player_data.get('skin_color')}\n"
+            #     f"Hair Color: {self.player_data.get('hair_color')}\n"
+            #     f"Character Name: {self.root_save.get('character_name')}\n"
+            # )
             
             self.current_fch = filename
 
