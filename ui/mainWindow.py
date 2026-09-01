@@ -9,6 +9,7 @@ from ui.skillsTab import SkillsTab
 from ui.statsTab import StatsTab
 from ui.appearanceTab import AppearanceTab
 from ui.miscTab import MiscTab
+from ui.valheim_detection import is_valheim_running, valheim_warning_message
 
 from subscripts.fchUtil import (
     decompile_fch,
@@ -23,6 +24,16 @@ from subscripts.playerDataUtil import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # valheim check, nöfnöf
+        if is_valheim_running():
+            warning_msg = valheim_warning_message()
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Valheim Running Warning")
+            msg.setText(warning_msg)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec()
 
         self.root_save = None       # Container data (.fch level dict)
         self.player_data = None     # Decoded character attributes dict
