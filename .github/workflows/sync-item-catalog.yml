@@ -1,0 +1,50 @@
+name: Sync Valheim Item Catalog
+
+on:
+  push:
+    branches:
+      - "feat/versioned-item-catalog"
+    paths:
+      - "tools/update_item_catalog.py"
+      - ".github/workflows/sync-item-catalog.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-catalog:
+    if: github.ref_name != 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate Valheim 0.221.12 catalog
+        run: python tools/update_item_catalog.py --expected-version 0.221.12 --output data/valheim_items.json
+
+      - name: Validate generated JSON
+        run: python -m json.tool data/valheim_items.json > /dev/null
+
+      - name: Commit generated catalog when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- data/valheim_items.json; then
+            echo "Catalog already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/valheim_items.json
+          git commit -m "Refresh Valheim 0.221.12 item catalog"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
