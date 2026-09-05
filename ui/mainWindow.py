@@ -3,7 +3,6 @@ import os
 import tempfile
 
 from PySide6.QtWidgets import *
-from PySide6.QtCore import Qt
 
 from ui.inventoryTab import InventoryTab
 from ui.skillsTab import SkillsTab
@@ -22,6 +21,9 @@ from subscripts.playerDataUtil import (
 )
 
 
+APP_NAME = "Valheim Character Save Editor"
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -29,8 +31,11 @@ class MainWindow(QMainWindow):
         if is_valheim_running():
             warning_msg = valheim_warning_message()
             msg = QMessageBox(self)
-            msg.setWindowTitle("Valheim Running Warning")
+            msg.setWindowTitle("Valheim Running")
             msg.setText(warning_msg)
+            msg.setInformativeText(
+                "You can inspect a character while Valheim is open, but saving is blocked until the game is closed."
+            )
             msg.setIcon(QMessageBox.Warning)
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec()
@@ -40,7 +45,7 @@ class MainWindow(QMainWindow):
         self.current_fch = None
         self.discovered_characters = []
 
-        self.setWindowTitle("Viking Editor")
+        self.setWindowTitle(APP_NAME)
         self.resize(1200, 800)
 
         central = QWidget()
@@ -48,14 +53,21 @@ class MainWindow(QMainWindow):
 
         main_layout = QVBoxLayout(central)
 
+        intro = QLabel(
+            "Choose your character, make changes in the tabs below, then click Save Changes. "
+            "Existing saves are backed up and verified automatically."
+        )
+        intro.setWordWrap(True)
+        main_layout.addWidget(intro)
+
         discovery_layout = QHBoxLayout()
         self.character_combo = QComboBox()
         self.character_combo.setMinimumWidth(420)
         self.character_combo.setToolTip(
             "Verified Valheim character saves discovered from local and Steam Cloud locations."
         )
-        self.btn_refresh_characters = QPushButton("Refresh Characters")
-        self.btn_open_discovered = QPushButton("Open Selected")
+        self.btn_refresh_characters = QPushButton("Refresh")
+        self.btn_open_discovered = QPushButton("Open Character")
         discovery_layout.addWidget(QLabel("Character:"))
         discovery_layout.addWidget(self.character_combo, 1)
         discovery_layout.addWidget(self.btn_refresh_characters)
@@ -63,18 +75,15 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(discovery_layout)
 
         button_layout = QHBoxLayout()
-        self.btn_open_save = QPushButton("Browse for .fch")
-        self.btn_open_json = QPushButton("Open JSON")
-        self.btn_save_json = QPushButton("Save JSON")
-        self.btn_save_save = QPushButton("Save Savefile")
-
+        self.btn_open_save = QPushButton("Browse for Another Save")
+        self.btn_save_save = QPushButton("Save Changes")
+        self.btn_save_save.setEnabled(False)
         button_layout.addWidget(self.btn_open_save)
-        button_layout.addWidget(self.btn_open_json)
-        button_layout.addWidget(self.btn_save_json)
+        button_layout.addStretch(1)
         button_layout.addWidget(self.btn_save_save)
         main_layout.addLayout(button_layout)
 
-        self.file_label = QLabel("No file loaded")
+        self.file_label = QLabel("No character loaded")
         main_layout.addWidget(self.file_label)
 
         self.tabs = QTabWidget()
@@ -86,39 +95,19 @@ class MainWindow(QMainWindow):
         self.appearance_tab = AppearanceTab()
         self.misc_tab = MiscTab()
 
+        self.tabs.addTab(self.appearance_tab, "Appearance")
         self.tabs.addTab(self.inventory_tab, "Inventory")
         self.tabs.addTab(self.skills_tab, "Skills")
         self.tabs.addTab(self.stats_tab, "Stats")
-        self.tabs.addTab(self.appearance_tab, "Appearance")
         self.tabs.addTab(self.misc_tab, "Misc")
 
         self.btn_refresh_characters.clicked.connect(self.refresh_discovered_characters)
         self.btn_open_discovered.clicked.connect(self.open_selected_character)
         self.character_combo.activated.connect(lambda _index: self._update_character_tooltip())
         self.btn_open_save.clicked.connect(self.open_save_file)
-        self.btn_open_json.clicked.connect(self.open_json_file)
-        self.btn_save_json.clicked.connect(self.save_json_file)
         self.btn_save_save.clicked.connect(self.save_save_file)
 
         self.refresh_discovered_characters()
-
-        try:
-            with open("info.txt", "r", encoding="utf-8") as f:
-                info_text = f.read()
-
-            msg = QMessageBox(self)
-            msg.setWindowTitle("Information")
-            msg.setText(info_text)
-            msg.setTextFormat(Qt.TextFormat.RichText)
-            msg.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-            msg.exec()
-
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                "Info Load Error",
-                f"Could not load info.txt:\n{str(e)}\nPlease read the info.txt file manually for important information!"
-            )
 
     def refresh_discovered_characters(self):
         previous_path = self.current_fch
@@ -129,7 +118,7 @@ class MainWindow(QMainWindow):
             self.character_combo.addItem("No Valheim character saves discovered", None)
             self.btn_open_discovered.setEnabled(False)
             self.character_combo.setToolTip(
-                "No saves were found automatically. Use 'Browse for .fch' for a custom location."
+                "No saves were found automatically. Use 'Browse for Another Save' for a custom location."
             )
             return
 
@@ -164,46 +153,45 @@ class MainWindow(QMainWindow):
 
     def open_selected_character(self):
         filename = self.character_combo.currentData()
-        if not filename:
-            return
-        self.load_save_file(filename)
+        if filename:
+            self.load_save_file(filename)
 
     def load_save_file(self, filename):
         try:
-            self.root_save = verify_fch_round_trip(filename)
-            self.current_fch = filename
-
-            player_hex = self.root_save.get("player_data_hex")
-            if player_hex:
-                self.player_data = unpack_player_data_hex(player_hex)
-                self.inventory_tab.load_data(self.player_data)
-                self.skills_tab.load_data(self.player_data)
-                self.stats_tab.load_data(self.player_data, self.root_save)
-                self.appearance_tab.load_data(self.player_data)
-                self.misc_tab.load_data(self.player_data, self.root_save)
-
-                self.file_label.setText(
-                    f"Loaded Save: {os.path.basename(filename)} "
-                    f"(Char: {self.root_save.get('character_name')})"
-                )
-                QMessageBox.information(
-                    self,
-                    "Character Loaded",
-                    "Valheim save checksum and structure verified, then loaded successfully."
-                )
-                self.refresh_discovered_characters()
-            else:
+            root_save = verify_fch_round_trip(filename)
+            player_hex = root_save.get("player_data_hex")
+            if not player_hex:
                 QMessageBox.warning(
                     self,
-                    "Empty Save",
-                    "The save container is valid, but it contains no player data."
+                    "Character Has No Player Data",
+                    "The save container is valid, but it contains no editable player data."
                 )
+                return
+
+            player_data = unpack_player_data_hex(player_hex)
+
+            self.root_save = root_save
+            self.player_data = player_data
+            self.current_fch = filename
+
+            self.inventory_tab.load_data(self.player_data)
+            self.skills_tab.load_data(self.player_data)
+            self.stats_tab.load_data(self.player_data, self.root_save)
+            self.appearance_tab.load_data(self.player_data)
+            self.misc_tab.load_data(self.player_data, self.root_save)
+
+            self.file_label.setText(
+                f"Editing: {self.root_save.get('character_name')}  •  {os.path.basename(filename)}"
+            )
+            self.btn_save_save.setEnabled(True)
+            self.tabs.setCurrentWidget(self.appearance_tab)
+            self.refresh_discovered_characters()
 
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "Character Load Failed",
-                "Viking Editor refused to load this save because it could not be verified and parsed safely."
+                "Character Could Not Be Opened",
+                "This save was not loaded because it could not be verified and parsed safely."
                 f"\n\n{str(e)}"
             )
 
@@ -218,35 +206,21 @@ class MainWindow(QMainWindow):
         if filename:
             self.load_save_file(filename)
 
-    def open_json_file(self):
-        QMessageBox.information(
-            self,
-            "Feature WIP",
-            "Opening JSON files is currently a work in progress and not yet implemented."
-        )
-
-    def save_json_file(self):
-        QMessageBox.information(
-            self,
-            "Feature WIP",
-            "Saving to JSON files is currently a work in progress and not yet implemented."
-        )
-
     def _block_save_if_valheim_running(self) -> bool:
         if not is_valheim_running():
             return False
 
         QMessageBox.critical(
             self,
-            "Save Blocked: Valheim Is Running",
-            f"{valheim_warning_message()}\n\nViking Editor will not write a character save while Valheim is running."
+            "Close Valheim Before Saving",
+            f"{valheim_warning_message()}\n\n{APP_NAME} will not write a character save while Valheim is running."
         )
         return True
 
     def save_save_file(self):
         """Pack, verify, back up, and safely replace the active Valheim save."""
         if not self.root_save or not self.player_data:
-            QMessageBox.warning(self, "No Save Loaded", "Please load a valid .fch save file first.")
+            QMessageBox.warning(self, "No Character Loaded", "Open a character before saving changes.")
             return
 
         if self._block_save_if_valheim_running():
@@ -270,7 +244,7 @@ class MainWindow(QMainWindow):
 
             filename, _ = QFileDialog.getSaveFileName(
                 self,
-                "Compile and Verify Valheim Save",
+                "Save Character Changes",
                 default_save_path,
                 "Valheim Character (*.fch)"
             )
@@ -287,7 +261,7 @@ class MainWindow(QMainWindow):
                 mode="w",
                 encoding="utf-8",
                 suffix=".json",
-                prefix="vikingeditor-",
+                prefix="valheim-character-editor-",
                 delete=False
             ) as wrapper_file:
                 json.dump(self.root_save, wrapper_file, indent=4, ensure_ascii=False)
@@ -296,7 +270,7 @@ class MainWindow(QMainWindow):
             destination_dir = os.path.dirname(os.path.abspath(filename))
             with tempfile.NamedTemporaryFile(
                 suffix=".fch",
-                prefix=".vikingeditor-",
+                prefix=".valheim-character-editor-",
                 dir=destination_dir,
                 delete=False
             ) as candidate_file:
@@ -311,22 +285,20 @@ class MainWindow(QMainWindow):
             )
             candidate_path = None
 
-            success_text = (
-                "Character save compiled, checksum-verified, reparsed, and saved successfully!"
-                f"\n\nLocation:\n{filename}"
-            )
+            success_text = f"Changes saved safely to:\n{filename}"
             if backup_path:
-                success_text += f"\n\nBackup created:\n{backup_path}"
+                success_text += f"\n\nPrevious save backed up to:\n{backup_path}"
+            success_text += "\n\nThe new save passed checksum and round-trip verification."
 
-            QMessageBox.information(self, "Verified Save Complete", success_text)
+            QMessageBox.information(self, "Changes Saved", success_text)
             self.current_fch = filename
             self.refresh_discovered_characters()
 
         except Exception as e:
             QMessageBox.critical(
                 self,
-                "Verified Save Failed",
-                "The destination save was not replaced unless verification completed successfully."
+                "Changes Were Not Saved",
+                "The existing destination was not replaced unless verification completed successfully."
                 f"\n\n{str(e)}"
             )
         finally:
