@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 
 from PySide6.QtWidgets import *
 from PySide6.QtCore import Qt
@@ -15,6 +16,7 @@ from subscripts.fchUtil import (
     decompile_fch,
     compile_fch
 )
+from subscripts.saveSafety import replace_verified_save
 
 from subscripts.playerDataUtil import (
     unpack_player_data_hex,
@@ -25,7 +27,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # valheim check, nöfnöf
         if is_valheim_running():
             warning_msg = valheim_warning_message()
             msg = QMessageBox(self)
@@ -126,7 +127,7 @@ class MainWindow(QMainWindow):
                 self.stats_tab.load_data(self.player_data, self.root_save)
                 self.appearance_tab.load_data(self.player_data)
                 self.misc_tab.load_data(self.player_data, self.root_save)
-                
+
                 self.file_label.setText(f"Loaded Save: {os.path.basename(filename)} (Char: {self.root_save.get('character_name')})")
                 QMessageBox.information(self, "Success", "Valheim Save decompiled and loaded successfully!")
             else:
@@ -176,77 +177,119 @@ class MainWindow(QMainWindow):
         #     # 2. Write straight to JSON
         #     with open(filename, "w", encoding="utf-8") as f:
         #         json.dump(self.player_data, f, indent=4, ensure_ascii=False)
-                
+
         #     QMessageBox.information(self, "Success", f"Data exported cleanly to:\n{filename}")
         # except Exception as e:
         #     QMessageBox.critical(self, "Error", f"Could not write JSON:\n{str(e)}")
         QMessageBox.information(self, "Feature WIP", "Saving to JSON files is currently a work in progress and not yet implemented.")
 
+    def _block_save_if_valheim_running(self) -> bool:
+        if not is_valheim_running():
+            return False
+
+        QMessageBox.critical(
+            self,
+            "Save Blocked: Valheim Is Running",
+            f"{valheim_warning_message()}\n\nViking Editor will not write a character save while Valheim is running."
+        )
+        return True
+
     def save_save_file(self):
-        """Packs the active inner data, updates the fch container, and re-compiles the file."""
+        """Pack, verify, back up, and safely replace the active Valheim save."""
         if not self.root_save or not self.player_data:
             QMessageBox.warning(self, "No Save Loaded", "Please load a valid .fch save file first.")
             return
 
+        if self._block_save_if_valheim_running():
+            return
+
+        temp_wrapper_path = None
+        candidate_path = None
+
         try:
-            # 1. collect all changes from the active tabs
-            self.inventory_tab.save_changes() # ?
+            # 1. Collect all changes from the active tabs.
+            self.inventory_tab.save_changes()
             self.skills_tab.save_changes()
             self.stats_tab.save_changes()
             self.appearance_tab.save_changes()
             self.misc_tab.save_changes()
 
-            # 2. update
+            # 2. Build the default destination from the active character.
             char_name = self.root_save.get("character_name", "Viking").strip()
-            
-            # filename: lowercase name + .fch
             suggested_filename = f"{char_name.lower()}.fch"
 
-            default_dir = os.path.dirname(self.current_fch) if getattr(self, 'current_fch', None) else ""
+            default_dir = os.path.dirname(self.current_fch) if getattr(self, "current_fch", None) else ""
             default_save_path = os.path.join(default_dir, suggested_filename)
 
-            # 3. open save dialog
             filename, _ = QFileDialog.getSaveFileName(
-                self, 
-                "Compile and Sign Valheim Save", 
-                default_save_path, 
+                self,
+                "Compile and Verify Valheim Save",
+                default_save_path,
                 "Valheim Character (*.fch)"
             )
             if not filename:
                 return
 
-            # 4. encode the player data back into hex and update the container
+            # Re-check at the write boundary. Valheim may have been launched while the dialog was open.
+            if self._block_save_if_valheim_running():
+                return
+
+            # 3. Encode the edited player data into the outer save container.
             updated_hex_payload = pack_player_data_hex(self.player_data)
             self.root_save["player_data_hex"] = updated_hex_payload
 
-            # 5. temp file to hold the wrapper JSON for the compiler
-            temp_wrapper_path = filename + ".tmp_wrapper.json"
-            with open(temp_wrapper_path, "w", encoding="utf-8") as f:
-                json.dump(self.root_save, f, indent=4, ensure_ascii=False)
+            # 4. Compile to temporary files. The destination is untouched until verification succeeds.
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                suffix=".json",
+                prefix="vikingeditor-",
+                delete=False
+            ) as wrapper_file:
+                json.dump(self.root_save, wrapper_file, indent=4, ensure_ascii=False)
+                temp_wrapper_path = wrapper_file.name
 
-            # compile and "sign" the .fch file (he said "sign" hahah, idiotic)
-            compile_fch(temp_wrapper_path, filename)
-            if os.path.exists(temp_wrapper_path):
-                os.remove(temp_wrapper_path)
+            destination_dir = os.path.dirname(os.path.abspath(filename))
+            with tempfile.NamedTemporaryFile(
+                suffix=".fch",
+                prefix=".vikingeditor-",
+                dir=destination_dir,
+                delete=False
+            ) as candidate_file:
+                candidate_path = candidate_file.name
 
-            QMessageBox.information(
-                self, "Success", 
-                f"Character save compiled, signed, and saved successfully!\n\nLocation:\n{filename}"
+            compile_fch(temp_wrapper_path, candidate_path)
+
+            # 5. Strictly verify and reparse the candidate, back up an existing destination,
+            #    then atomically replace it with the verified file.
+            backup_path = replace_verified_save(
+                candidate_path,
+                filename,
+                expected_root=self.root_save
             )
+            candidate_path = None
 
-            # QMessageBox.information(
-            #     self, "Debug Info",
-            #     f"Model Index: {self.player_data.get('model_index')}\n"
-            #     f"Hair Style: {repr(self.player_data.get('hair'))}\n"
-            #     f"Beard Style: {repr(self.player_data.get('beard'))}\n"
-            #     f"Skin Color: {self.player_data.get('skin_color')}\n"
-            #     f"Hair Color: {self.player_data.get('hair_color')}\n"
-            #     f"Character Name: {self.root_save.get('character_name')}\n"
-            # )
-            
+            success_text = (
+                "Character save compiled, checksum-verified, reparsed, and saved successfully!"
+                f"\n\nLocation:\n{filename}"
+            )
+            if backup_path:
+                success_text += f"\n\nBackup created:\n{backup_path}"
+
+            QMessageBox.information(self, "Verified Save Complete", success_text)
             self.current_fch = filename
 
         except Exception as e:
-            if 'temp_wrapper_path' in locals() and os.path.exists(temp_wrapper_path):
-                os.remove(temp_wrapper_path)
-            QMessageBox.critical(self, "Compilation Error", f"Failed to repack and sign the .fch file:\n{str(e)}")
+            QMessageBox.critical(
+                self,
+                "Verified Save Failed",
+                "The destination save was not replaced unless verification completed successfully."
+                f"\n\n{str(e)}"
+            )
+        finally:
+            for temp_path in (temp_wrapper_path, candidate_path):
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
