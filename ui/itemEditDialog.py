@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
 )
 
-from data.items import completion_labels, resolve_item
+from data.items import CATALOG_GAME_VERSION, completion_labels, resolve_item
 
 
 class ItemEditDialog(QDialog):
@@ -100,6 +100,7 @@ class ItemEditDialog(QDialog):
     def _apply_catalog_constraints(self, preserve_existing=True):
         raw_value = self.prefab_input.text().strip()
         item = resolve_item(raw_value)
+        version_label = f"Valheim {CATALOG_GAME_VERSION}" if CATALOG_GAME_VERSION else "bundled"
 
         if not item:
             self._set_preserving_range(
@@ -112,13 +113,16 @@ class ItemEditDialog(QDialog):
                 self.variant_input, 0, max(999, self.variant_input.value()), True
             )
             self.catalog_status.setText(
-                "Custom or modded prefab. Raw values are preserved and catalog limits are not enforced."
+                f"Not found in the {version_label} catalog. Raw values are preserved; "
+                "this may be a modded item or an item from a newer game version."
             )
             return
 
         self.prefab_input.setText(item.prefab)
         warnings = []
         details = [item.display_name]
+        if item.item_type:
+            details.append(item.item_type)
 
         if item.max_stack is not None:
             if preserve_existing and self.stack_input.value() > item.max_stack:
@@ -151,7 +155,7 @@ class ItemEditDialog(QDialog):
             )
             details.append(f"variants 0-{max_variant}")
 
-        status = "Known item: " + ", ".join(details)
+        status = f"{version_label} catalog: " + ", ".join(details)
         if warnings:
             status += ". Compatibility note: " + "; ".join(warnings) + "."
         self.catalog_status.setText(status)
