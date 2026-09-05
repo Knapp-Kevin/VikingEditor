@@ -7,6 +7,7 @@ on:
     paths:
       - "tools/update_item_catalog.py"
       - ".github/workflows/sync-item-catalog.yml"
+      - ".gitignore"
   workflow_dispatch:
 
 permissions:
