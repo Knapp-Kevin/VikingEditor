@@ -21,8 +21,14 @@ class ItemCatalogTests(unittest.TestCase):
         self.assertEqual(item.prefab, "ArrowWood")
         self.assertEqual(item.max_stack, 100)
 
-    def test_resolves_human_readable_name(self):
-        item = resolve_item("Bronze Sword")
+    def test_resolves_unique_human_readable_name(self):
+        item = resolve_item("Breastplate of Ask")
+        self.assertIsNotNone(item)
+        self.assertEqual(item.prefab, "ArmorAshlandsMediumChest")
+
+    def test_ambiguous_human_readable_name_requires_prefab_disambiguation(self):
+        self.assertIsNone(resolve_item("Bronze Sword"))
+        item = resolve_item("Bronze Sword — SwordBronze")
         self.assertIsNotNone(item)
         self.assertEqual(item.prefab, "SwordBronze")
         self.assertEqual(item.max_quality, 4)
