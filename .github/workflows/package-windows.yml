@@ -1,4 +1,4 @@
-name: Build Windows Desktop App
+name: Build Wulfpack Forge for Windows
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
       - "subscripts/**"
       - "data/**"
       - "requirements.txt"
-      - "ValheimCharacterSaveEditor.spec"
+      - "WulfpackForge.spec"
       - ".github/workflows/package-windows.yml"
   push:
     tags:
@@ -42,26 +42,26 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Build portable executable
-        run: pyinstaller --clean --noconfirm ValheimCharacterSaveEditor.spec
+        run: pyinstaller --clean --noconfirm WulfpackForge.spec
 
       - name: Smoke test packaged executable
         shell: pwsh
-        run: .\dist\ValheimCharacterSaveEditor.exe --smoke-test
+        run: .\dist\WulfpackForge.exe --smoke-test
 
       - name: Create Windows package and checksum
         shell: pwsh
         run: |
-          Compress-Archive -Path .\dist\ValheimCharacterSaveEditor.exe -DestinationPath .\dist\ValheimCharacterSaveEditor-windows-x64.zip -Force
-          $hash = (Get-FileHash .\dist\ValheimCharacterSaveEditor.exe -Algorithm SHA256).Hash.ToLower()
-          "$hash  ValheimCharacterSaveEditor.exe" | Set-Content .\dist\SHA256SUMS.txt
+          Compress-Archive -Path .\dist\WulfpackForge.exe -DestinationPath .\dist\WulfpackForge-windows-x64.zip -Force
+          $hash = (Get-FileHash .\dist\WulfpackForge.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  WulfpackForge.exe" | Set-Content .\dist\SHA256SUMS.txt
 
       - name: Upload packaged app
         uses: actions/upload-artifact@v4
         with:
-          name: ValheimCharacterSaveEditor-windows-x64
+          name: WulfpackForge-windows-x64
           path: |
-            dist/ValheimCharacterSaveEditor.exe
-            dist/ValheimCharacterSaveEditor-windows-x64.zip
+            dist/WulfpackForge.exe
+            dist/WulfpackForge-windows-x64.zip
             dist/SHA256SUMS.txt
           if-no-files-found: error
 
@@ -72,9 +72,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$env:GITHUB_REF_NAME" `
-            .\dist\ValheimCharacterSaveEditor.exe `
-            .\dist\ValheimCharacterSaveEditor-windows-x64.zip `
+            .\dist\WulfpackForge.exe `
+            .\dist\WulfpackForge-windows-x64.zip `
             .\dist\SHA256SUMS.txt `
             --repo "$env:GITHUB_REPOSITORY" `
-            --title "Valheim Character Save Editor $env:GITHUB_REF_NAME" `
+            --title "Wulfpack Forge $env:GITHUB_REF_NAME" `
             --generate-notes
