@@ -33,6 +33,18 @@ If no packaged release is available yet, see [Running from Source](#running-from
 
 ---
 
+## Valheim Version Compatibility
+
+Wulfpack Forge treats game-version compatibility as part of save safety, not as a footnote.
+
+The bundled item catalog is currently generated from **Valheim 0.221.12** data and contains more than 900 player-selectable vanilla items. The catalog records the Valheim version it was generated from and the item editor displays that version when resolving items.
+
+**Valheim 1.0 is scheduled for September 9, 2026.** The 1.0 release includes the Deep North and additional game content, so the item catalog will need to be regenerated after compatible 1.0 game data becomes available. Iron Gate also tested save-system changes ahead of 1.0. Their published details focus primarily on world saves, but Wulfpack Forge will still revalidate real 1.0 character `.fch` loading, editing, round-trip verification, backups, and replacement before declaring a post-1.0 build compatible.
+
+Until that validation is complete, an item not found in the bundled catalog is treated conservatively: Wulfpack Forge preserves the raw prefab and values rather than assuming the item is invalid. It may be a modded item or a legitimate item from a newer Valheim version.
+
+---
+
 ## What You Can Edit
 
 ### Appearance
@@ -49,11 +61,14 @@ Wulfpack Forge opens directly into the appearance-focused experience so common c
 ### Inventory
 
 - View inventory visually by slot
-- Search known items by human-readable name
+- Search the bundled vanilla item catalog by human-readable name or prefab
+- Use a versioned catalog generated from Valheim game data rather than a small hand-maintained list
 - Edit item stack count, durability, quality, variant, and equipped state
-- Automatically apply known stack, quality, and variant limits
-- Preserve unknown or modded prefab IDs instead of rejecting them
+- Automatically apply curated known stack, quality, and variant limits
+- Preserve unknown, modded, or newer-version prefab IDs instead of rejecting them
 - Preserve unusual existing values rather than silently destroying them
+
+Catalog discovery data and save-writing constraints are intentionally separated. Updating the generated item list cannot silently loosen or change stack, quality, or variant limits.
 
 ### Skills
 
@@ -139,6 +154,22 @@ python main.py
 
 ---
 
+## Refreshing the Valheim Item Catalog
+
+The player-facing catalog is generated from JotunnDoc's vanilla Valheim item data and committed as `data/valheim_items.json`.
+
+For the currently supported pre-1.0 snapshot:
+
+```bash
+python tools/update_item_catalog.py --expected-version 0.221.12
+```
+
+The generator records the source Valheim version and refuses to publish a suspiciously small catalog. If the upstream source reports a different game version than expected, generation fails so a game update cannot silently replace the catalog without review.
+
+When Valheim 1.0 data becomes available, update the expected version deliberately, regenerate the catalog, inspect the diff for new/removed items, and run the full character-save compatibility suite before publishing a 1.0-compatible Wulfpack Forge release.
+
+---
+
 ## Building the Windows Desktop App
 
 The repository includes a PyInstaller-based Windows packaging workflow. The packaged application is built as a self-contained executable so end users do not need a Python runtime.
@@ -148,7 +179,8 @@ The GitHub Actions packaging workflow:
 - installs application dependencies
 - runs the test suite
 - builds `WulfpackForge.exe`
-- smoke-tests the packaged executable
+- bundles the versioned Valheim item catalog
+- smoke-tests the packaged executable and catalog
 - creates a Windows ZIP package
 - generates a SHA-256 checksum file
 - uploads the build as a workflow artifact
@@ -163,13 +195,13 @@ The fork includes automated validation for the functionality added beyond the or
 - save-safety behavior
 - checksum and round-trip verification
 - automatic character discovery
-- item catalog resolution
-- unknown/modded item preservation
+- versioned item catalog resolution
+- unknown/modded/newer-version item preservation
 - offscreen Qt widget behavior
 - Python source compilation
-- packaged Windows executable smoke testing
+- packaged Windows executable and bundled-catalog smoke testing
 
-The broader local roadmap is tracked in [issue #2](https://github.com/Knapp-Kevin/VikingEditor/issues/2), while installation and first-run simplification is tracked in [issue #4](https://github.com/Knapp-Kevin/VikingEditor/issues/4).
+The broader local roadmap is tracked in [issue #2](https://github.com/Knapp-Kevin/VikingEditor/issues/2). The completed player-installation tranche is recorded in [issue #4](https://github.com/Knapp-Kevin/VikingEditor/issues/4).
 
 ---
 
@@ -177,7 +209,11 @@ The broader local roadmap is tracked in [issue #2](https://github.com/Knapp-Kevi
 
 ```text
 ├── main.py                       # Application entry point
-├── data/                         # Item/catalog data used by the editor
+├── data/
+│   ├── items.py                  # Catalog loader + curated safety constraints
+│   └── valheim_items.json       # Generated, versioned vanilla item catalog
+├── tools/
+│   └── update_item_catalog.py    # Version-aware catalog generator
 ├── subscripts/
 │   ├── characterDiscovery.py     # Local and Steam character discovery
 │   ├── fchUtil.py                # Valheim .fch parsing/compilation
@@ -191,7 +227,7 @@ The broader local roadmap is tracked in [issue #2](https://github.com/Knapp-Kevi
 │   ├── statsTab.py               # Stats editor
 │   └── miscTab.py                # Character-level settings
 ├── tests/                        # Regression and behavior tests
-└── .github/workflows/            # Test and packaging automation
+└── .github/workflows/            # Test, catalog, and packaging automation
 ```
 
 ---
