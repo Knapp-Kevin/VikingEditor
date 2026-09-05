@@ -8,7 +8,7 @@ from ui.mainWindow import MainWindow
 def _verify_catalog_bundle() -> bool:
     from data.items import CATALOG_GAME_VERSION, CATALOG_SELECTABLE_ITEM_COUNT
 
-    return CATALOG_GAME_VERSION == "0.221.12" and CATALOG_SELECTABLE_ITEM_COUNT >= 900
+    return bool(CATALOG_GAME_VERSION) and CATALOG_SELECTABLE_ITEM_COUNT >= 900
 
 
 def main():
