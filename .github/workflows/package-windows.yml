@@ -1,0 +1,80 @@
+name: Build Wulfpack Forge for Windows
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "main.py"
+      - "ui/**"
+      - "subscripts/**"
+      - "data/**"
+      - "requirements.txt"
+      - "WulfpackForge.spec"
+      - ".github/workflows/package-windows.yml"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build portable executable
+        run: pyinstaller --clean --noconfirm WulfpackForge.spec
+
+      - name: Smoke test packaged executable
+        shell: pwsh
+        run: .\dist\WulfpackForge.exe --smoke-test
+
+      - name: Create Windows package and checksum
+        shell: pwsh
+        run: |
+          Compress-Archive -Path .\dist\WulfpackForge.exe -DestinationPath .\dist\WulfpackForge-windows-x64.zip -Force
+          $hash = (Get-FileHash .\dist\WulfpackForge.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  WulfpackForge.exe" | Set-Content .\dist\SHA256SUMS.txt
+
+      - name: Upload packaged app
+        uses: actions/upload-artifact@v4
+        with:
+          name: WulfpackForge-windows-x64
+          path: |
+            dist/WulfpackForge.exe
+            dist/WulfpackForge-windows-x64.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub Release for version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" `
+            .\dist\WulfpackForge.exe `
+            .\dist\WulfpackForge-windows-x64.zip `
+            .\dist\SHA256SUMS.txt `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --title "Wulfpack Forge $env:GITHUB_REF_NAME" `
+            --generate-notes

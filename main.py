@@ -7,12 +7,17 @@ from ui.mainWindow import MainWindow
 
 def main():
     app = QApplication(sys.argv)
-
     window = MainWindow()
-    window.show()
 
-    sys.exit(app.exec())
+    if "--smoke-test" in sys.argv:
+        window.show()
+        app.processEvents()
+        window.close()
+        return 0
+
+    window.show()
+    return app.exec()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
