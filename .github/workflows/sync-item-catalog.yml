@@ -39,7 +39,7 @@ jobs:
       - name: Commit generated catalog when changed
         shell: bash
         run: |
-          if git diff --quiet -- data/valheim_items.json; then
+          if [[ -z "$(git status --porcelain -- data/valheim_items.json)" ]]; then
             echo "Catalog already current."
             exit 0
           fi
