@@ -16,6 +16,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 DEFAULT_SOURCE = "https://valheim-modding.github.io/Jotunn/data/objects/item-list.html"
+CURRENT_STABLE_VERSION = "0.221.12"
 
 
 class ItemTableParser(HTMLParser):
@@ -134,7 +135,7 @@ def parse_catalog(html: str, source_url: str, expected_version: str | None) -> d
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", default=DEFAULT_SOURCE)
-    parser.add_argument("--expected-version")
+    parser.add_argument("--expected-version", default=CURRENT_STABLE_VERSION)
     parser.add_argument("--output", default="data/valheim_items.json")
     args = parser.parse_args()
 
