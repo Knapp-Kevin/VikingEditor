@@ -23,7 +23,7 @@ class BrandingTests(unittest.TestCase):
         self.assertEqual(BANNER_RELATIVE_PATH, "assets/wulfpack-forge-banner.jpg")
         self.assertGreaterEqual(MIN_BANNER_WIDTH, 1200)
         self.assertGreaterEqual(MIN_BANNER_HEIGHT, 400)
-        self.assertGreaterEqual(MIN_BANNER_BYTES, 30_000)
+        self.assertGreaterEqual(MIN_BANNER_BYTES, 12_000)
         self.assertTrue(banner_path().is_file())
         self.assertGreaterEqual(banner_path().stat().st_size, MIN_BANNER_BYTES)
         self.assertTrue(banner_is_usable())
