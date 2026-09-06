@@ -15,17 +15,18 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - Save version, source, modification time, catalog version, and recent-backup details in the main UI.
 - Workspace-scoped timestamped backups.
 - Regression coverage for workspace snapshots, working copies, external-change detection, and workspace backup placement.
-- Banner quality validation that rejects thumbnail-scale or aggressively compressed runtime artwork.
+- Current application screenshots for the main save-status surface, Appearance tab, and catalog-aware Inventory editor.
+- Runtime banner validation that rejects non-image bytes instead of accepting a corrupt file based on size alone.
+- Regression coverage for banner decoding and save-status text contrast.
 
 ### Changed
 - `Save Changes` now applies edits to the active loaded character through the managed workspace safety path rather than asking the player to choose the destination again.
 - Backups created during normal editing are kept under the character's Wulfpack Forge workspace instead of cluttering the active Valheim character directory.
 - Valid character-save versions outside the current write-validated set are explicitly read-only rather than being treated as silently writable.
 - README and support guidance now document the workspace, save-health states, Steam Cloud interaction, and source-change protection.
-- The canonical README/application banner was replaced with a higher-quality source asset and is now protected by a quality floor.
-
-### Planned documentation media
-- Actual application screenshots will be added to the README after the current workspace/status UI stabilizes. Mockups will not be substituted for current product screenshots.
+- The canonical README/application banner was restored from the approved 2048×682 master through a binary-safe local conversion.
+- Save-status metadata and guidance now use readable foreground colors on the dark status surface.
+- README release media now shows the current application with synthetic, publication-safe character data.
 
 ## Branding and governance milestone
 

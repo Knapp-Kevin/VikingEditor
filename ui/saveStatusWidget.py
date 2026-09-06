@@ -34,8 +34,10 @@ class SaveStatusWidget(QFrame):
         self.state_label.setObjectName("saveStatusState")
         self.meta_label = QLabel()
         self.meta_label.setWordWrap(True)
+        self.meta_label.setStyleSheet("color: #c4d8df;")
         self.detail_label = QLabel()
         self.detail_label.setWordWrap(True)
+        self.detail_label.setStyleSheet("color: #a9c1ca;")
 
         layout.addWidget(self.state_label)
         layout.addWidget(self.meta_label)

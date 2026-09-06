@@ -35,6 +35,20 @@ The normal path is deliberately simple: download the Windows build, open a chara
 
 If a packaged release has not been published yet, the source-install path remains available for developers and advanced users under [Running from source](#running-from-source).
 
+## See it in action
+
+The compact status card tells you whether the selected save is verified for editing, where the local copy came from, and whether Wulfpack Forge has a protected backup.
+
+![Wulfpack Forge main window showing a verified synthetic character, local Steam Cloud source, save version, catalog version, and workspace backup](docs/screenshots/main-status.png)
+
+Appearance controls use readable choices and color previews, so changing a model, hairstyle, beard, or color does not require save-format knowledge.
+
+![Wulfpack Forge Appearance tab showing synthetic character customization controls](docs/screenshots/appearance.png)
+
+Inventory editing combines the familiar character grid with searchable catalog guidance, known stack and quality limits, and a raw-prefab path for modded or newer items.
+
+![Wulfpack Forge Inventory tab showing synthetic items and the catalog-aware Bronze Sword editor](docs/screenshots/inventory.png)
+
 ## What Wulfpack Forge can edit
 
 | Area | Capabilities |
@@ -199,15 +213,11 @@ Automated coverage currently includes:
 - catalog resolution and duplicate-name behavior;
 - unknown/modded item preservation;
 - offscreen Qt widget behavior;
-- Wulfpack Forge branding quality and runtime asset validation;
+- Wulfpack Forge branding identity and decodable runtime asset validation;
 - Python source compilation;
 - packaged Windows executable smoke testing.
 
 The durable product roadmap is [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2).
-
-### UI screenshots
-
-The README will include screenshots of the **actual Wulfpack Forge application**, not mockups, after the current workspace/status UI stabilizes. Screenshot capture and maintenance are tracked in issue #2 so the images represent the shipping interface rather than an intermediate design.
 
 ## Project structure
 

@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from ui.branding import (
     APP_NAME,
@@ -23,6 +26,14 @@ class BrandingTests(unittest.TestCase):
         self.assertTrue(banner_path().is_file())
         self.assertGreaterEqual(banner_path().stat().st_size, MIN_BANNER_BYTES)
         self.assertTrue(banner_is_usable())
+
+    def test_non_image_bytes_do_not_pass_runtime_asset_validation(self):
+        with TemporaryDirectory() as temp_dir:
+            invalid_banner = Path(temp_dir) / "banner.jpg"
+            invalid_banner.write_bytes(b"not-a-jpeg" * 2_000)
+
+            with patch("ui.branding.banner_path", return_value=invalid_banner):
+                self.assertFalse(banner_is_usable())
 
 
 if __name__ == "__main__":
