@@ -1,0 +1,62 @@
+name: Feature request
+description: Propose an improvement to the Wulfpack Forge player experience
+title: "[Feature] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the player problem. A proposed implementation is useful, but the problem matters more than the first solution idea.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Player problem
+      description: What is difficult, unsafe, confusing, or missing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should a player be able to do when this is solved?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Optional implementation or UX idea.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Appearance
+        - Inventory
+        - Skills
+        - Stats
+        - Character discovery
+        - Save safety
+        - Packaging / installation
+        - Branding / UI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: risk
+    attributes:
+      label: Does this affect save safety or compatibility?
+      options:
+        - label: This may change save parsing, serialization, constraints, backup/replacement behavior, or Valheim compatibility claims.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, examples, screenshots, comparable tools, or other useful context.
