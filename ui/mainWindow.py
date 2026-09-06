@@ -37,11 +37,11 @@ from subscripts.playerDataUtil import (
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, startup_warning: bool = True):
         super().__init__()
 
         startup_scan = scan_valheim()
-        if startup_scan.state == ScanState.RUNNING:
+        if startup_warning and startup_scan.state == ScanState.RUNNING:
             warning_msg = valheim_warning_message(startup_scan)
             msg = QMessageBox(self)
             msg.setWindowTitle("Valheim Running")

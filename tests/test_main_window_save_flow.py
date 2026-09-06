@@ -22,6 +22,18 @@ APP = QApplication.instance() or QApplication([])
 
 class RecordingMessageBox:
     calls = []
+    Warning = 0
+    Ok = 0
+
+    def __init__(self, *args, **kwargs):
+        RecordingMessageBox.calls.append(("startup", "constructed"))
+
+    def setWindowTitle(self, *a): pass
+    def setText(self, *a): pass
+    def setInformativeText(self, *a): pass
+    def setIcon(self, *a): pass
+    def setStandardButtons(self, *a): pass
+    def exec(self): return 0
 
     @classmethod
     def information(cls, *args, **kwargs):
@@ -139,6 +151,16 @@ class MainWindowSaveFlowTests(unittest.TestCase):
         original = created.read_bytes()
         self.window.save_save_file()
         self.assertEqual(created.read_bytes(), original)
+
+    def test_smoke_mode_skips_startup_dialog_when_valheim_runs(self):
+        self.scan = ValheimScan(state=ScanState.RUNNING, process={"pid": 1, "name": "valheim.exe", "exe": None})
+        RecordingMessageBox.calls = []
+        quiet = mw.MainWindow(startup_warning=False)
+        self.assertNotIn(("startup", "constructed"), RecordingMessageBox.calls)
+        quiet.close()
+        loud = mw.MainWindow()
+        self.assertIn(("startup", "constructed"), RecordingMessageBox.calls)
+        loud.close()
 
     def test_unsupported_inner_version_is_read_only(self):
         payload = realistic_player_data()

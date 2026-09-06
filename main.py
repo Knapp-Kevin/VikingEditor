@@ -27,7 +27,7 @@ def _verify_glyph_bundle() -> bool:
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(app_icon())
-    window = MainWindow()
+    window = MainWindow(startup_warning="--smoke-test" not in sys.argv)
 
     if "--smoke-test" in sys.argv:
         if not (_verify_catalog_bundle() and _verify_brand_bundle() and _verify_glyph_bundle()):

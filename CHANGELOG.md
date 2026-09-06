@@ -11,6 +11,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - The Valheim-running check no longer treats a scan it could not complete as "not running". An inconclusive scan keeps your verified edit in the Wulfpack Forge workspace, leaves the active character untouched, and asks you to close Valheim and save again.
 - Save parsing rejects files with unconsumed trailing data, refuses character-save versions older than 40 with a clear message, preserves non-UTF-8 text exactly, and treats unknown player-data layout versions as read-only instead of writable.
 - The `fchUtil.py` command-line `unpack` mode works again.
+- `--smoke-test` no longer blocks on the "Valheim Running" dialog when the game happens to be open on the machine running the check.
 
 ### Added
 - The item picker now branches by category, then type, then material (for example Weapons, Swords, Bronze), and separates armour from Hildir's clothing and hats, accessories (belts and trinkets), and creature-only gear. Tooltips show each item's role and equipment slot.
