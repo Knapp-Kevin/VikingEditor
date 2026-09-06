@@ -44,10 +44,10 @@ class ItemPickerDialogTests(unittest.TestCase):
         self.assertNotIn("ArmorFenringChest", prefabs)
         row = dialog.grid.item(prefabs.index("ArmorDress4"))
         self.assertIn("clothing", row.toolTip().lower())
-        dialog.select_group("Creature Gear")
+        dialog.select_group("Creature and Internal")
         self.assertIn("GoblinArmband", _grid_prefabs(dialog))
         last = dialog.categories.topLevelItem(dialog.categories.topLevelItemCount() - 2).text(0)
-        self.assertEqual(last, "Creature Gear")
+        self.assertEqual(last, "Creature and Internal")
         dialog.close()
 
     def test_selecting_weapons_shows_sword_with_icon(self):

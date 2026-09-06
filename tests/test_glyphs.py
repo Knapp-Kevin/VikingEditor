@@ -23,6 +23,28 @@ class GlyphResolutionTests(unittest.TestCase):
         self.assertEqual(glyph_for(resolve_item("HelmetBronze")), ("G15_helmet", "bronze"))
         self.assertEqual(glyph_for(resolve_item("Wood")), ("G20_ingot", "wood"))
 
+    def test_refined_glyph_ids(self):
+        from data.glyphs import GLYPH_IDS, PENDING_GLYPH_IDS
+        expected = {
+            "BombOoze": "G24_bomb", "BombBlob_Frost": "G24_bomb", "PickaxeIron": "G25_pickaxe",
+            "Hammer": "G26_hammer", "Hoe": "G27_hoe", "Cultivator": "G27_hoe", "CryptKey": "G28_key",
+            "HildirKey_forestcrypt": "G28_key", "DragonEgg": "G29_egg", "SaddleLox": "G30_misc",
+            "Feaster": "G30_misc", "Tankard": "G31_tankard", "FishingRod": "G32_fishing",
+            "FishingBait": "G32_fishing", "FistBjornClaw": "G33_fist", "Scythe": "G34_scythe",
+            "THSwordKrom": "G06_greatsword", "Torch": "G23_torch",
+        }
+        for prefab, glyph in expected.items():
+            self.assertEqual(glyph_for(resolve_item(prefab))[0], glyph, prefab)
+        self.assertEqual(len(PENDING_GLYPH_IDS), 11)
+        self.assertFalse(set(PENDING_GLYPH_IDS) & set(GLYPH_IDS))
+        self.assertEqual(len(GLYPH_IDS), 23)
+
+    def test_pending_glyph_renders_placeholder(self):
+        ui_glyphs.clear_cache()
+        pixmap = ui_glyphs.item_pixmap("BombOoze", 64)
+        self.assertFalse(pixmap.isNull())
+        self.assertGreater(pixmap.toImage().pixelColor(32, 32).alpha(), 0)
+
     def test_unknown_prefab_falls_back_to_slate_ingot(self):
         self.assertEqual(glyph_for(None), ("G20_ingot", "slate"))
         self.assertEqual(glyph_for(resolve_item("MyModdedLegendaryHammer")), ("G20_ingot", "slate"))

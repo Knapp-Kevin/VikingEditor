@@ -25,6 +25,16 @@ class RoleAndSlotTests(unittest.TestCase):
         self.assertEqual(role_for(resolve_item("Wood")), "none")
         self.assertEqual(role_for(None), "none")
 
+    def test_creature_attacks_are_not_player_items(self):
+        for prefab in ("troll_log_swing_h", "draugr_bow", "skeleton_bow", "charred_greatsword_swing",
+                       "SeekerBrute_Taunt", "PlayerUnarmed", "charred_magestaff_fire", "draugr_arrow"):
+            self.assertEqual(role_for(resolve_item(prefab)), "creature", prefab)
+        self.assertEqual(role_for(resolve_item("SwordCheat")), "internal")
+        self.assertEqual(role_for(resolve_item("ShieldKnight")), "internal")
+        for prefab in ("FistBjornClaw", "BombOoze", "Tankard_dvergr", "FishingRod"):
+            self.assertEqual(role_for(resolve_item(prefab)), "weapon", prefab)
+        self.assertEqual(role_for(resolve_item("chest_hildir1")), "none")
+
     def test_slots_and_hands(self):
         self.assertEqual(slot_for(resolve_item("ArmorDress4")), "chest")
         self.assertEqual(slot_for(resolve_item("ArmorFenringChest")), "chest")

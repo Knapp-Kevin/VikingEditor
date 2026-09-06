@@ -38,12 +38,30 @@ CLOTHING_EXACT = frozenset({
 })
 
 
+# Creature attack "items" JotunnDoc lists as selectable: lowercase prefabs or attack verbs
+# on weapon/bow/ammo types. Player prefabs are CamelCase.
+ATTACK_TOKENS = ("_Taunt", "_Call", "_Teleport", "_swing", "_throw", "_feint", "_thrust", "_volley", "_firenova")
+ATTACK_TYPES = WEAPON_TYPES | {"Ammo", "AmmoNonEquipable"}
+CREATURE_ATTACK_EXACT = frozenset({"PlayerUnarmed"})
+INTERNAL_EXACT = frozenset({"SwordCheat", "SledgeCheat", "ShieldKnight"})
+
+
+def _is_creature_attack(prefab: str, item_type: str) -> bool:
+    if prefab in CREATURE_ATTACK_EXACT:
+        return True
+    if item_type not in ATTACK_TYPES:
+        return False
+    return prefab[:1].islower() or any(token in prefab for token in ATTACK_TOKENS)
+
+
 def role_for(item: Optional[ItemDefinition]) -> str:
-    """``creature`` / ``clothing`` / ``armor`` / ``weapon`` / ``shield`` / ``accessory`` / ``none``."""
+    """``creature`` / ``internal`` / ``clothing`` / ``armor`` / ``weapon`` / ``shield`` / ``accessory`` / ``none``."""
     if item is None:
         return "none"
     prefab, item_type = item.prefab, item.item_type or ""
-    if prefab in CREATURE_EXACT or prefab.startswith(CREATURE_PREFIXES):
+    if prefab in INTERNAL_EXACT:
+        return "internal"
+    if prefab in CREATURE_EXACT or prefab.startswith(CREATURE_PREFIXES) or _is_creature_attack(prefab, item_type):
         return "creature"
     if prefab in CLOTHING_EXACT or prefab.startswith(CLOTHING_PREFIXES):
         return "clothing"

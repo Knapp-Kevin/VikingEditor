@@ -10,8 +10,22 @@ class ItemGroupTests(unittest.TestCase):
             GROUPS,
             ("Weapons", "Bows and Ammo", "Shields", "Helmets", "Chest Armor", "Leg Armor", "Capes",
              "Clothing and Hats", "Accessories", "Tools", "Materials", "Food and Mead", "Trophies",
-             "Misc", "Creature Gear"),
+             "Misc", "Creature and Internal"),
         )
+
+    def test_creature_attacks_leave_the_weapon_lists(self):
+        weapons = [i.prefab for i in items_in_group("Weapons")]
+        bows = [i.prefab for i in items_in_group("Bows and Ammo")]
+        for prefab in ("troll_log_swing_h", "draugr_axe", "SeekerBrute_Taunt", "PlayerUnarmed", "SwordCheat"):
+            self.assertNotIn(prefab, weapons, prefab)
+        self.assertNotIn("skeleton_bow", bows)
+        last = [i.prefab for i in items_in_group(GROUPS[-1])]
+        self.assertIn("troll_log_swing_h", last)
+        self.assertIn("skeleton_bow", last)
+        self.assertIn("GoblinArmband", last)
+        weapon_tree = dict(dict(navigation_tree())["Weapons"])
+        self.assertIn("Bombs", weapon_tree)
+        self.assertIn("Pickaxes", weapon_tree)
 
     def test_every_selectable_item_has_one_group(self):
         for item in ITEMS:
@@ -44,7 +58,7 @@ class ItemGroupTests(unittest.TestCase):
         self.assertEqual(group_for(resolve_item("ArmorDress4")), "Clothing and Hats")
         self.assertEqual(group_for(resolve_item("HelmetHat1")), "Clothing and Hats")
         self.assertEqual(group_for(resolve_item("CapeWolf")), "Capes")
-        self.assertEqual(group_for(resolve_item("GoblinArmband")), "Creature Gear")
+        self.assertEqual(group_for(resolve_item("GoblinArmband")), "Creature and Internal")
         self.assertEqual(group_for(resolve_item("BeltStrength")), "Accessories")
         self.assertEqual(group_for(resolve_item("Wood")), "Materials")
         self.assertEqual(group_for(resolve_item("TrophyBoar")), "Trophies")

@@ -72,7 +72,25 @@ original design.
 | G20 ingot | material bar or lump | Material | 215 |
 | G21 food | bowl or cooked item | Consumable, Fish | 116 |
 | G22 trophy | mounted head plaque | Trophy | 60 |
-| G23 torch | torch | Torch, Misc | 27 |
+| G23 torch | torch | Torch | 4 |
+
+## Round 2 item silhouettes (11), pending masters
+
+Resolved by `data/glyphs.py` today and drawn as placeholder tiles until the PNGs land under `assets/glyphs/items/` and each id is moved from `PENDING_GLYPH_IDS` to `GLYPH_IDS`.
+
+| glyph id | depicts | prefabs |
+|---|---|---|
+| G24_bomb | round clay bomb with a short fuse | Bomb* (ooze, bile, smoke, blob, lava) |
+| G25_pickaxe | pickaxe head on a handle | Pickaxe* |
+| G26_hammer | one-handed building hammer | Hammer; Tool default |
+| G27_hoe | hoe or cultivator, long handle | Hoe, Cultivator |
+| G28_key | old iron key | CryptKey, DvergrKey, HildirKey_* |
+| G29_egg | single egg | DragonEgg, ChickenEgg, AsksvinEgg, VoltureEgg |
+| G30_misc | tied sack or bundle | Misc default: saddles, bell, barber kit, chests, serving tray |
+| G31_tankard | drinking horn or tankard | Tankard* |
+| G32_fishing | fishing rod with line, small bait tin | FishingRod, FishingBait* |
+| G33_fist | clawed fist weapon | Fist* |
+| G34_scythe | scythe | Scythe |
 
 Customization (109) is not an inventory surface and needs no glyph. Modded prefabs with no catalog row fall back to G20 with the slate tint.
 

@@ -24,7 +24,7 @@ GROUPS = (
     "Food and Mead",
     "Trophies",
     "Misc",
-    "Creature Gear",
+    "Creature and Internal",
 )
 
 # Hair and beard rows appear in the JotunnDoc item list but are not inventory items.
@@ -54,6 +54,8 @@ _SUBTYPE_LABEL = {
     "G05_spear": "Spears", "G06_greatsword": "Greatswords", "G07_battleaxe": "Battleaxes",
     "G08_polearm": "Polearms", "G09_sledge": "Sledges", "G10_staff": "Staves",
     "G11_bow": "Bows", "G12_crossbow": "Crossbows", "G13_arrow": "Arrows",
+    "G24_bomb": "Bombs", "G25_pickaxe": "Pickaxes", "G33_fist": "Fists", "G31_tankard": "Tankards",
+    "G32_fishing": "Fishing", "G34_scythe": "Scythes",
 }
 _SUBTYPE_ORDER = tuple(_SUBTYPE_LABEL.values()) + ("Bolts",)
 _BRANCHED_GROUPS = frozenset({"Weapons", "Bows and Ammo"})
@@ -64,8 +66,8 @@ def group_for(item: Optional[ItemDefinition]) -> Optional[str]:
     if item is None or item.item_type in EXCLUDED_TYPES:
         return None
     role = role_for(item)
-    if role == "creature":
-        return "Creature Gear"
+    if role in ("creature", "internal"):
+        return "Creature and Internal"
     if role == "clothing":
         return "Clothing and Hats"
     return _TYPE_GROUP.get(item.item_type or "", "Misc")
