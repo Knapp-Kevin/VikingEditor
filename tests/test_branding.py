@@ -27,6 +27,23 @@ class BrandingTests(unittest.TestCase):
         self.assertGreaterEqual(banner_path().stat().st_size, MIN_BANNER_BYTES)
         self.assertTrue(banner_is_usable())
 
+    def test_app_icon_resources_are_usable(self):
+        from PySide6.QtGui import QImageReader
+        from ui.branding import APP_ICO_RELATIVE_PATH, app_icon, app_icon_path, resource_path
+
+        self.assertTrue(app_icon_path().is_file())
+        ico = resource_path(APP_ICO_RELATIVE_PATH)
+        self.assertTrue(ico.is_file())
+        self.assertTrue(QImageReader(str(ico)).canRead())
+        self.assertFalse(app_icon().isNull())
+
+    def test_missing_app_icon_yields_null_icon_without_raising(self):
+        from ui.branding import app_icon
+
+        with TemporaryDirectory() as temp_dir:
+            with patch("ui.branding.app_icon_path", return_value=Path(temp_dir) / "missing.png"):
+                self.assertTrue(app_icon().isNull())
+
     def test_non_image_bytes_do_not_pass_runtime_asset_validation(self):
         with TemporaryDirectory() as temp_dir:
             invalid_banner = Path(temp_dir) / "banner.jpg"

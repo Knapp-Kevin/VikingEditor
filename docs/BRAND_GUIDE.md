@@ -25,6 +25,14 @@ The canonical raster is a **2048×682** progressive JPEG suitable for full-width
 
 Do not replace the approved banner casually or create competing product marks inside the repository.
 
+## Application icon
+
+Canonical repository asset:
+
+`assets/FrostWulf-favicon.png`
+
+The Frostwulf mark (white wolf head on an ice-blue compass ring, transparent background, 1254×1254) is the application icon. It is applied once at application level so every window and dialog inherits it, and it is the icon of the packaged executable through `assets/wulfpack-forge.ico`, which `tools/make_app_icon.py` generates from the PNG. Edit the PNG, re-run the tool, and commit both files together.
+
 ## README usage
 
 The banner should appear across the top of the README before the product heading.

@@ -8,6 +8,7 @@ a = Analysis(
     datas=[
         ("data/valheim_items.json", "data"),
         ("assets/wulfpack-forge-banner.jpg", "assets"),
+        ("assets/FrostWulf-favicon.png", "assets"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -33,6 +34,7 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
+    icon="assets/wulfpack-forge.ico",
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

@@ -2,6 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from ui.branding import app_icon
 from ui.mainWindow import MainWindow
 
 
@@ -19,6 +20,7 @@ def _verify_brand_bundle() -> bool:
 
 def main():
     app = QApplication(sys.argv)
+    app.setWindowIcon(app_icon())
     window = MainWindow()
 
     if "--smoke-test" in sys.argv:
