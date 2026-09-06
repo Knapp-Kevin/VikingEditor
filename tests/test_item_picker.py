@@ -21,8 +21,33 @@ def _grid_prefabs(dialog):
 class ItemPickerDialogTests(unittest.TestCase):
     def test_categories_are_listed_in_order_with_advanced_last(self):
         dialog = ItemPickerDialog()
-        labels = [dialog.categories.item(i).text() for i in range(dialog.categories.count())]
+        labels = [dialog.categories.topLevelItem(i).text(0) for i in range(dialog.categories.topLevelItemCount())]
         self.assertEqual(labels, list(GROUPS) + ["Advanced"])
+        dialog.close()
+
+    def test_tree_branches_weapons_into_type_and_material(self):
+        dialog = ItemPickerDialog()
+        weapons = dialog.categories.topLevelItem(0)
+        swords = next(weapons.child(i) for i in range(weapons.childCount()) if weapons.child(i).text(0) == "Swords")
+        bronze = next(swords.child(i) for i in range(swords.childCount()) if swords.child(i).text(0) == "Bronze")
+        dialog.categories.setCurrentItem(bronze)
+        self.assertEqual(_grid_prefabs(dialog), ["SwordBronze"])
+        dialog.categories.setCurrentItem(weapons)
+        self.assertIn("SwordIron", _grid_prefabs(dialog))
+        dialog.close()
+
+    def test_clothing_and_creature_gear_are_separate(self):
+        dialog = ItemPickerDialog()
+        dialog.select_group("Clothing and Hats")
+        prefabs = _grid_prefabs(dialog)
+        self.assertIn("ArmorDress4", prefabs)
+        self.assertNotIn("ArmorFenringChest", prefabs)
+        row = dialog.grid.item(prefabs.index("ArmorDress4"))
+        self.assertIn("clothing", row.toolTip().lower())
+        dialog.select_group("Creature Gear")
+        self.assertIn("GoblinArmband", _grid_prefabs(dialog))
+        last = dialog.categories.topLevelItem(dialog.categories.topLevelItemCount() - 2).text(0)
+        self.assertEqual(last, "Creature Gear")
         dialog.close()
 
     def test_selecting_weapons_shows_sword_with_icon(self):

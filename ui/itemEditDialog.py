@@ -77,7 +77,8 @@ class ItemEditDialog(QDialog):
         layout.addRow("Stack Size:", self.stack_input)
         layout.addRow("Durability:", self.durability_input)
         layout.addRow("Quality Level:", self.quality_input)
-        layout.addRow("Variant (Style):", self.variant_input)
+        self.variant_label = QLabel("Variant (Style):")
+        layout.addRow(self.variant_label, self.variant_input)
         layout.addRow("Equipped:", self.equipped_input)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -110,6 +111,7 @@ class ItemEditDialog(QDialog):
         self.glyph_preview.setPixmap(item_pixmap(raw_value, 72))
         version_label = f"Valheim {CATALOG_GAME_VERSION}" if CATALOG_GAME_VERSION else "bundled"
 
+        self._set_variant_visible(item is None or item.variants is None or item.variants > 1)
         if not item:
             self._set_preserving_range(
                 self.stack_input, 0, max(9999, self.stack_input.value()), True
@@ -167,6 +169,11 @@ class ItemEditDialog(QDialog):
         if warnings:
             status += ". Compatibility note: " + "; ".join(warnings) + "."
         self.catalog_status.setText(status)
+
+    def _set_variant_visible(self, visible: bool) -> None:
+        """Only items with more than one style (or unknown items) show the variant field."""
+        self.variant_input.setVisible(visible)
+        self.variant_label.setVisible(visible)
 
     def accept(self):
         raw_value = self.prefab_input.text().strip()

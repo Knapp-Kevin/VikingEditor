@@ -55,7 +55,7 @@ Inventory editing combines the familiar character grid with original item-catego
 | Area | Capabilities |
 |---|---|
 | Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
-| Inventory | Categorised item picker with search and original tinted glyphs, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
+| Inventory | Item picker organised by category, then type, then material (Weapons > Swords > Bronze), with clothing, accessories, and creature gear kept apart from armour; search, original tinted glyphs, raw prefab entry for modded items; stacks, durability, quality, styles where an item has them, and equipped state with the game's one-item-per-slot rule |
 | Skills | Supported Valheim skill levels, including adding vanilla skills the character does not have yet |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |

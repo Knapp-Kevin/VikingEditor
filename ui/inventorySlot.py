@@ -2,6 +2,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QToolButton
 
+from data.equipment import role_for, slot_for
 from data.items import resolve_item
 from ui.glyphs import item_icon
 
@@ -43,9 +44,14 @@ class InventorySlot(QToolButton):
             self.setText(f"{display_name}\nx{stack}")
             state = "equipped" if is_equipped else "not equipped"
             self.setAccessibleName(f"{display_name}, stack {stack}, {state}")
+            role = role_for(catalog_item)
+            slot = slot_for(catalog_item)
+            role_line = f"Role: {role}\n" if role != "none" else ""
+            slot_line = f"Slot: {slot}\n" if slot else ""
             self.setToolTip(
                 f"Prefab: {prefab}\n"
                 f"Item: {display_name}\n"
+                f"{role_line}{slot_line}"
                 f"Equipped: {'Yes' if is_equipped else 'No'}\n"
                 f"Quality: {self.item_data.get('quality', 1)}\n"
                 f"Variant: {self.item_data.get('variant', 0)}"

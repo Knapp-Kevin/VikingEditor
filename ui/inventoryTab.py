@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QGridLayout,
+    QLabel,
     QMenu,
     QMessageBox,
     QDialog
@@ -9,6 +10,8 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
+from data.equipment import resolve_equip
+from data.items import resolve_item
 from ui.inventorySlot import InventorySlot
 from ui.itemEditDialog import ItemEditDialog
 from ui.itemPickerDialog import ItemPickerDialog
@@ -25,6 +28,10 @@ class InventoryTab(QWidget):
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(6)
         self.main_layout.addLayout(self.grid_layout)
+        self.equip_status = QLabel()
+        self.equip_status.setWordWrap(True)
+        self.equip_status.setStyleSheet("color: #c4d8df;")
+        self.main_layout.addWidget(self.equip_status)
         
         self.slots = {}
         self.init_empty_grid()
@@ -47,6 +54,7 @@ class InventoryTab(QWidget):
 
     def load_data(self, player_data):
         self.player_data = player_data
+        self.equip_status.setText("")
         self.init_empty_grid()
 
         inventory_list = player_data.get("inventory", [])
@@ -89,6 +97,7 @@ class InventoryTab(QWidget):
             updated = dialog.get_updated_data()
             slot.item_data.update(updated)
             slot.update_visuals()
+            self._enforce_equip_rule(slot.item_data)
 
     def delete_slot_item(self, slot: InventorySlot):
         confirm = QMessageBox.question(
@@ -129,6 +138,22 @@ class InventoryTab(QWidget):
             
             self.player_data["inventory"].append(new_item)
             slot.set_item(new_item)
+            self._enforce_equip_rule(new_item)
+
+    def _enforce_equip_rule(self, item):
+        """Mirror the game: one item per slot, hands exclusive with two-handed items."""
+        changed = resolve_equip(self.player_data.get("inventory", []), item)
+        if not changed:
+            return
+        for other in changed:
+            slot = self.slots.get((other.get("grid_x"), other.get("grid_y")))
+            if slot is not None and slot.item_data is other:
+                slot.update_visuals()
+        names = []
+        for other in changed:
+            catalog = resolve_item(other.get("prefab", ""))
+            names.append(catalog.display_name if catalog else other.get("prefab", "?"))
+        self.equip_status.setText("Unequipped to make room: " + ", ".join(names))
 
     def save_changes(self):
         """Nothing to collect: every edit mutates the item dictionaries inside ``player_data`` in place."""

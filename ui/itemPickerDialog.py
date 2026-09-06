@@ -1,4 +1,4 @@
-"""Categorised item picker: curated groups on the left, an icon grid on the right."""
+"""Categorised item picker: a navigation tree on the left, an icon grid on the right."""
 from typing import Optional
 
 from PySide6.QtCore import QSize, Qt
@@ -11,34 +11,37 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QStackedWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from data.item_groups import GROUPS, items_in_group, pickable_items
+from data.equipment import role_for, slot_for
+from data.item_groups import GROUPS, items_under, navigation_tree, pickable_items
 from ui.glyphs import item_icon
 
 ADVANCED = "Advanced"
 ICON_SIZE = 64
+NODE_ROLE = Qt.UserRole
 
 
 class ItemPickerDialog(QDialog):
-    """Pick a catalog item by category or search, or type a raw prefab under Advanced."""
+    """Pick a catalog item by category, subtype, and material, by search, or by raw prefab."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add Item")
-        self.resize(820, 520)
+        self.resize(860, 540)
         self.selected_prefab: Optional[str] = None
-        self._current_group = GROUPS[0]
+        self._current_node = (GROUPS[0], None, None)
 
         layout = QHBoxLayout(self)
 
-        self.categories = QListWidget()
-        self.categories.setFixedWidth(170)
-        for name in GROUPS:
-            self.categories.addItem(name)
-        self.categories.addItem(ADVANCED)
+        self.categories = QTreeWidget()
+        self.categories.setHeaderHidden(True)
+        self.categories.setFixedWidth(210)
+        self._build_tree()
         layout.addWidget(self.categories)
 
         right = QVBoxLayout()
@@ -76,42 +79,66 @@ class ItemPickerDialog(QDialog):
         right.addWidget(self.buttons)
         layout.addLayout(right, 1)
 
-        self.categories.currentTextChanged.connect(self.select_group)
+        self.categories.currentItemChanged.connect(self._node_changed)
         self.search.textChanged.connect(self._apply_search)
         self.grid.itemDoubleClicked.connect(lambda _item: self.accept())
-        self.categories.setCurrentRow(0)
+        self.categories.setCurrentItem(self.categories.topLevelItem(0))
+
+    def _build_tree(self) -> None:
+        for group, branches in navigation_tree():
+            top = QTreeWidgetItem([group])
+            top.setData(0, NODE_ROLE, (group, None, None))
+            for subgroup, materials in branches:
+                child = QTreeWidgetItem([subgroup])
+                child.setData(0, NODE_ROLE, (group, subgroup, None))
+                for material in materials:
+                    leaf = QTreeWidgetItem([material])
+                    leaf.setData(0, NODE_ROLE, (group, subgroup, material))
+                    child.addChild(leaf)
+                top.addChild(child)
+            self.categories.addTopLevelItem(top)
+        advanced = QTreeWidgetItem([ADVANCED])
+        advanced.setData(0, NODE_ROLE, (ADVANCED, None, None))
+        self.categories.addTopLevelItem(advanced)
 
     def select_group(self, name: str) -> None:
-        if name == ADVANCED:
+        for index in range(self.categories.topLevelItemCount()):
+            top = self.categories.topLevelItem(index)
+            if top.text(0) == name:
+                self.categories.setCurrentItem(top)
+                return
+
+    def _node_changed(self, current, _previous=None) -> None:
+        if current is None:
+            return
+        node = current.data(0, NODE_ROLE)
+        if node[0] == ADVANCED:
             self.pages.setCurrentIndex(1)
             self.raw_input.setFocus()
             return
-        self._current_group = name
+        self._current_node = node
         self.pages.setCurrentIndex(0)
         if self.search.text().strip():
             self._apply_search(self.search.text())
         else:
-            self._fill(items_in_group(name))
+            self._fill(items_under(*node))
 
     def _apply_search(self, text: str) -> None:
         needle = text.strip().lower()
         if not needle:
-            self._fill(items_in_group(self._current_group))
+            self._fill(items_under(*self._current_node))
             return
         if self.pages.currentIndex() != 0:
             self.pages.setCurrentIndex(0)
-        matches = [
-            item for item in pickable_items()
-            if needle in item.display_name.lower() or needle in item.prefab.lower()
-        ]
-        self._fill(matches)
+        self._fill(item for item in pickable_items()
+                   if needle in item.display_name.lower() or needle in item.prefab.lower())
 
     def _fill(self, items) -> None:
         self.grid.clear()
         for item in items:
             row = QListWidgetItem(item_icon(item, ICON_SIZE), item.display_name)
             row.setData(Qt.UserRole, item.prefab)
-            row.setToolTip(f"{item.display_name}\nPrefab: {item.prefab}\nType: {item.item_type or 'unknown'}")
+            row.setToolTip(_describe(item))
             row.setSizeHint(QSize(112, 100))
             self.grid.addItem(row)
 
@@ -127,3 +154,16 @@ class ItemPickerDialog(QDialog):
                 return
             self.selected_prefab = current.data(Qt.UserRole)
         super().accept()
+
+
+def _describe(item) -> str:
+    role = role_for(item)
+    lines = [item.display_name, f"Prefab: {item.prefab}", f"Type: {item.item_type or 'unknown'}"]
+    if role == "creature":
+        lines.append("Creature gear: not wearable by players")
+    elif role != "none":
+        lines.append(f"Role: {role}")
+    slot = slot_for(item)
+    if slot:
+        lines.append(f"Slot: {slot}")
+    return "\n".join(lines)

@@ -1,6 +1,6 @@
 import unittest
 
-from data.item_groups import GROUPS, EXCLUDED_TYPES, group_for, items_in_group, tier_rank
+from data.item_groups import GROUPS, EXCLUDED_TYPES, group_for, items_in_group, items_under, navigation_tree, tier_rank
 from data.items import ITEMS, resolve_item
 
 
@@ -8,8 +8,9 @@ class ItemGroupTests(unittest.TestCase):
     def test_groups_are_in_the_curated_order(self):
         self.assertEqual(
             GROUPS,
-            ("Weapons", "Bows and Ammo", "Armor", "Shields", "Tools and Utility",
-             "Materials", "Food and Mead", "Trophies", "Misc"),
+            ("Weapons", "Bows and Ammo", "Shields", "Helmets", "Chest Armor", "Leg Armor", "Capes",
+             "Clothing and Hats", "Accessories", "Tools", "Materials", "Food and Mead", "Trophies",
+             "Misc", "Creature Gear"),
         )
 
     def test_every_selectable_item_has_one_group(self):
@@ -38,9 +39,27 @@ class ItemGroupTests(unittest.TestCase):
 
     def test_group_membership_examples(self):
         self.assertEqual(group_for(resolve_item("ArrowIron")), "Bows and Ammo")
-        self.assertEqual(group_for(resolve_item("HelmetBronze")), "Armor")
+        self.assertEqual(group_for(resolve_item("HelmetBronze")), "Helmets")
+        self.assertEqual(group_for(resolve_item("ArmorFenringChest")), "Chest Armor")
+        self.assertEqual(group_for(resolve_item("ArmorDress4")), "Clothing and Hats")
+        self.assertEqual(group_for(resolve_item("HelmetHat1")), "Clothing and Hats")
+        self.assertEqual(group_for(resolve_item("CapeWolf")), "Capes")
+        self.assertEqual(group_for(resolve_item("GoblinArmband")), "Creature Gear")
+        self.assertEqual(group_for(resolve_item("BeltStrength")), "Accessories")
         self.assertEqual(group_for(resolve_item("Wood")), "Materials")
         self.assertEqual(group_for(resolve_item("TrophyBoar")), "Trophies")
+
+    def test_navigation_tree_branches_weapons_by_type_then_material(self):
+        tree = dict(navigation_tree())
+        self.assertEqual(list(tree), list(GROUPS))
+        weapons = dict(tree["Weapons"])
+        self.assertIn("Swords", weapons)
+        self.assertIn("Bronze", weapons["Swords"])
+        self.assertEqual([i.prefab for i in items_under("Weapons", "Swords", "Bronze")], ["SwordBronze"])
+        swords = [i.prefab for i in items_under("Weapons", "Swords")]
+        self.assertLess(swords.index("SwordBronze"), swords.index("SwordIron"))
+        self.assertEqual(items_under("Weapons"), items_in_group("Weapons"))
+        self.assertEqual(tree["Materials"], [])
 
 
 if __name__ == "__main__":

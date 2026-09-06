@@ -13,6 +13,9 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - The `fchUtil.py` command-line `unpack` mode works again.
 
 ### Added
+- The item picker now branches by category, then type, then material (for example Weapons, Swords, Bronze), and separates armour from Hildir's clothing and hats, accessories (belts and trinkets), and creature-only gear. Tooltips show each item's role and equipment slot.
+- Equipping an item now follows the game's rule: one item per slot (head, chest, legs, cape, utility, trinket) and hands exclusive between two-handed weapons, shields, and one-handed weapons. Anything that conflicts is unequipped and named in a status line. Saves that already contain conflicting flags are left untouched until you edit one of the items.
+- The item editor shows the Variant (Style) field only for items that have styles (such as painted shields) or for modded items the catalog does not know.
 - A categorised item picker for adding inventory items: curated groups on the left, an icon grid with search on the right, and an Advanced tab for raw modded prefabs.
 - An original 23-piece in-app inventory glyph set with item-aware silhouettes, runtime material tinting, a neutral unknown-item fallback, and a live preview in the item editor.
 - Objective runtime and packaged-smoke validation for the complete inventory glyph bundle, plus committed SHA-256 asset hashes.
