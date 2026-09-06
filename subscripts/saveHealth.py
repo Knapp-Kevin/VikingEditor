@@ -10,10 +10,10 @@ SAVE_STATE_VERIFIED = "Verified"
 SAVE_STATE_NEEDS_ATTENTION = "Needs attention"
 SAVE_STATE_COMPATIBILITY_UNVERIFIED = "Compatibility unverified"
 
-# The current serializer/parser is explicitly configured around character save v43.
-# Other versions may still parse, but Wulfpack Forge does not write them until that
-# version has its own compatibility evidence.
-SUPPORTED_CHARACTER_SAVE_VERSIONS = frozenset({43})
+# Character-save versions the codec has round-tripped byte-identical on real saves
+# (22 v40-v42 files and 18 v43 files, 2026-09-06). The player payload is gated
+# separately by SUPPORTED_PLAYER_DATA_VERSIONS; any other outer version is read-only.
+SUPPORTED_CHARACTER_SAVE_VERSIONS = frozenset({40, 41, 42, 43})
 
 
 @dataclass(frozen=True)
@@ -64,6 +64,7 @@ def build_save_health_report(
     backup_path: Optional[str] = None,
     catalog_game_version: Optional[str] = CATALOG_GAME_VERSION,
     source_changed: bool = False,
+    payload_supported: bool = True,
 ) -> SaveHealthReport:
     source = (source or "Local file").strip() or "Local file"
 
@@ -103,8 +104,12 @@ def build_save_health_report(
             source_changed=True,
         )
 
-    if version not in SUPPORTED_CHARACTER_SAVE_VERSIONS:
+    if version not in SUPPORTED_CHARACTER_SAVE_VERSIONS or not payload_supported:
         version_text = "unknown" if version is None else str(version)
+        if version in SUPPORTED_CHARACTER_SAVE_VERSIONS:
+            reason = "the player data inside it uses a layout version outside"
+        else:
+            reason = f"save version {version_text} is outside"
         return SaveHealthReport(
             state=SAVE_STATE_COMPATIBILITY_UNVERIFIED,
             verification_ok=True,
@@ -114,7 +119,7 @@ def build_save_health_report(
             modified_at=modified_at,
             catalog_game_version=catalog_game_version,
             detail=(
-                f"Checksum and structure verified, but save version {version_text} is outside "
+                f"Checksum and structure verified, but {reason} "
                 "the current write-validated set. You can inspect the character, but Save Changes "
                 "is disabled until compatibility is validated."
             ),

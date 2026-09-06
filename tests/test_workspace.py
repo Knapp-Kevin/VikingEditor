@@ -65,6 +65,17 @@ class WorkspaceTests(unittest.TestCase):
             self.assertIn("characters", Path(session.workspace_dir).parts)
             self.assertIn("active", Path(session.workspace_dir).parts)
 
+    def test_surrogate_escaped_character_name_persists_in_metadata(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            save_data = minimal_save_data(name=b"Fr\xffst".decode("utf-8", "surrogateescape"))
+            source = compile_save(root, save_data)
+
+            session = create_workspace_session(str(source), save_data, workspace_root=root / "workspace")
+
+            metadata = json.loads(Path(session.metadata_path).read_text(encoding="utf-8"))
+            self.assertEqual(metadata["character_name"], save_data["character_name"])
+
     def test_external_source_change_is_detected_without_touching_snapshot(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

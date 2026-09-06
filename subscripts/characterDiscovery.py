@@ -5,7 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from subscripts.saveSafety import SaveVerificationError, verify_fch_round_trip
+from subscripts.playerDataUtil import unpack_player_data_hex
+from subscripts.saveErrors import SaveFormatError
+from subscripts.saveSafety import verify_fch_round_trip
 
 
 VALHEIM_APP_ID = "892970"
@@ -135,6 +137,7 @@ def inspect_character_save(path: Path, source: str) -> CharacterSave:
 
     try:
         parsed = verify_fch_round_trip(str(path))
+        unpack_player_data_hex(parsed.get("player_data_hex") or "")
         return CharacterSave(
             path=str(path),
             name=(parsed.get("character_name") or fallback_name).strip() or fallback_name,
@@ -143,7 +146,7 @@ def inspect_character_save(path: Path, source: str) -> CharacterSave:
             version=parsed.get("version"),
             valid=True,
         )
-    except (SaveVerificationError, OSError, ValueError, KeyError) as exc:
+    except (SaveFormatError, OSError, ValueError, KeyError) as exc:
         return CharacterSave(
             path=str(path),
             name=fallback_name,

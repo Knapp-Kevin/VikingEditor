@@ -1,6 +1,6 @@
 import copy
-import json
 import os
+import shutil
 import tempfile
 
 from PySide6.QtCore import Qt
@@ -13,11 +13,11 @@ from ui.statsTab import StatsTab
 from ui.appearanceTab import AppearanceTab
 from ui.miscTab import MiscTab
 from ui.saveStatusWidget import SaveStatusWidget
-from ui.valheim_detection import is_valheim_running, valheim_warning_message
+from ui.valheim_detection import ScanState, ValheimScan, scan_valheim, valheim_warning_message
 from ui.branding import APP_NAME, APP_SUBTITLE, APP_AUTHOR, APP_WINDOW_TITLE, banner_path
 
 from subscripts.characterDiscovery import discover_character_saves
-from subscripts.fchUtil import compile_fch
+from subscripts.fchUtil import serialize_save, write_fch_bytes
 from subscripts.saveHealth import build_save_health_report
 from subscripts.saveSafety import replace_verified_save, verify_fch_round_trip
 from subscripts.workspace import (
@@ -27,8 +27,9 @@ from subscripts.workspace import (
 )
 
 from subscripts.playerDataUtil import (
+    pack_player_data_hex,
+    payload_is_supported,
     unpack_player_data_hex,
-    pack_player_data_hex
 )
 
 
@@ -36,8 +37,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        if is_valheim_running():
-            warning_msg = valheim_warning_message()
+        startup_scan = scan_valheim()
+        if startup_scan.state == ScanState.RUNNING:
+            warning_msg = valheim_warning_message(startup_scan)
             msg = QMessageBox(self)
             msg.setWindowTitle("Valheim Running")
             msg.setText(warning_msg)
@@ -54,6 +56,7 @@ class MainWindow(QMainWindow):
         self.current_fch = None
         self.current_source = "Local file"
         self.current_modified_at = None
+        self.current_payload_supported = True
         self.workspace_session = None
         self.discovered_characters = []
 
@@ -204,6 +207,7 @@ class MainWindow(QMainWindow):
             error=error,
             backup_path=backup_path,
             source_changed=source_changed,
+            payload_supported=self.current_payload_supported,
         )
         self.save_status.set_report(report)
         self.btn_save_save.setEnabled(bool(self.root_save and self.player_data and report.writable))
@@ -287,6 +291,7 @@ class MainWindow(QMainWindow):
             player_data = unpack_player_data_hex(player_hex)
             workspace_session = create_workspace_session(filename, root_save)
 
+            self.current_payload_supported = payload_is_supported(player_data)
             self.root_save = root_save
             self.opened_root = copy.deepcopy(root_save)
             self.player_data = player_data
@@ -318,6 +323,7 @@ class MainWindow(QMainWindow):
             self.opened_root = None
             self.player_data = None
             self.current_fch = None
+            self.current_payload_supported = True
             self.workspace_session = None
             self.btn_save_save.setEnabled(False)
             self.file_label.setText("No character loaded")
@@ -347,13 +353,28 @@ class MainWindow(QMainWindow):
             self.load_save_file(filename)
 
     def _block_save_if_valheim_running(self) -> bool:
-        if not is_valheim_running():
+        scan = scan_valheim()
+        if scan.state != ScanState.RUNNING:
             return False
 
         QMessageBox.critical(
             self,
             "Close Valheim Before Saving",
-            f"{valheim_warning_message()}\n\n{APP_NAME} will not write a character save while Valheim is running."
+            f"{valheim_warning_message(scan)}\n\n{APP_NAME} will not write a character save while Valheim is running."
+        )
+        return True
+
+    def _block_replace_if_valheim_uncertain(self, scan: ValheimScan, working_path: str) -> bool:
+        """Only a scan that proves Valheim is closed may touch the active character file."""
+        if scan.state == ScanState.NOT_RUNNING:
+            return False
+
+        QMessageBox.warning(
+            self,
+            "Changes kept in your Wulfpack Forge working copy",
+            f"{valheim_warning_message(scan)}\n\n"
+            f"Your edits were verified and kept in the Wulfpack Forge working copy:\n{working_path}\n\n"
+            "The active character file was not replaced. Close Valheim and click Save Changes again to apply them."
         )
         return True
 
@@ -380,87 +401,35 @@ class MainWindow(QMainWindow):
         if self._block_save_if_valheim_running():
             return
 
-        temp_wrapper_path = None
-        candidate_path = None
+        session = self.workspace_session
+        candidate_path = os.path.join(session.workspace_dir, "working", ".candidate.fch.tmp")
+        staged_path = None
 
         try:
             # Detect Steam, Valheim, another editor, or any other source mutation before doing write work.
-            self.workspace_session.assert_source_unchanged()
+            session.assert_source_unchanged()
 
-            self.inventory_tab.save_changes()
-            self.skills_tab.save_changes()
-            self.stats_tab.save_changes()
-            self.appearance_tab.save_changes()
-            self.misc_tab.save_changes()
+            self._collect_tab_changes()
+            self.root_save["player_data_hex"] = pack_player_data_hex(self.player_data)
 
-            updated_hex_payload = pack_player_data_hex(self.player_data)
-            self.root_save["player_data_hex"] = updated_hex_payload
-
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding="utf-8",
-                suffix=".json",
-                prefix="wulfpack-forge-",
-                delete=False
-            ) as wrapper_file:
-                json.dump(self.root_save, wrapper_file, indent=4, ensure_ascii=False)
-                temp_wrapper_path = wrapper_file.name
-
-            destination_dir = os.path.dirname(self.current_fch)
-            with tempfile.NamedTemporaryFile(
-                suffix=".fch",
-                prefix=".wulfpack-forge-",
-                dir=destination_dir,
-                delete=False
-            ) as candidate_file:
-                candidate_path = candidate_file.name
-
-            compile_fch(temp_wrapper_path, candidate_path)
+            # The candidate is built and verified inside the managed workspace, never in Valheim's save tree.
+            write_fch_bytes(serialize_save(self.root_save), candidate_path)
             verify_fch_round_trip(candidate_path, expected_root=self.root_save)
+            store_verified_working_copy(candidate_path, session, expected_root=self.root_save)
 
-            # Keep a durable, verified working copy inside the Wulfpack Forge workspace first.
-            store_verified_working_copy(
-                candidate_path,
-                self.workspace_session,
-                expected_root=self.root_save,
-            )
-
-            if self._block_save_if_valheim_running():
+            if self._block_replace_if_valheim_uncertain(scan_valheim(), session.working_path):
                 return
 
+            staged_path = self._stage_candidate(session.working_path)
             backup_path = replace_verified_save(
-                candidate_path,
+                staged_path,
                 self.current_fch,
                 expected_root=self.root_save,
-                backup_directory=self.workspace_session.backups_dir,
-                expected_destination_sha256=self.workspace_session.expected_source_sha256,
+                backup_directory=session.backups_dir,
+                expected_destination_sha256=session.expected_source_sha256,
             )
-            candidate_path = None
-            self.workspace_session.update_after_apply(backup_path)
-            self.opened_root = copy.deepcopy(self.root_save)
-
-            try:
-                self.current_modified_at = os.path.getmtime(self.current_fch)
-            except OSError:
-                self.current_modified_at = None
-
-            self._set_health(
-                valid=True,
-                version=self.root_save.get("version"),
-                modified_at=self.current_modified_at,
-                backup_path=backup_path,
-            )
-
-            success_text = f"Changes applied safely to:\n{self.current_fch}"
-            if backup_path:
-                success_text += f"\n\nPrevious save backed up in the Wulfpack Forge workspace:\n{backup_path}"
-            success_text += (
-                "\n\nThe working copy passed checksum and round-trip verification, and the active file "
-                "was confirmed unchanged before replacement."
-            )
-
-            QMessageBox.information(self, "Changes Saved", success_text)
-            self.refresh_discovered_characters()
+            staged_path = None
+            self._finish_apply(backup_path)
 
         except SourceChangedError as exc:
             self._mark_external_change(str(exc))
@@ -479,9 +448,52 @@ class MainWindow(QMainWindow):
                 f"\n\n{str(exc)}"
             )
         finally:
-            for temp_path in (temp_wrapper_path, candidate_path):
+            for temp_path in (candidate_path, staged_path):
                 if temp_path and os.path.exists(temp_path):
                     try:
                         os.remove(temp_path)
                     except OSError:
                         pass
+
+    def _collect_tab_changes(self):
+        for tab in (self.inventory_tab, self.skills_tab, self.stats_tab, self.appearance_tab, self.misc_tab):
+            tab.save_changes()
+
+    def _stage_candidate(self, working_path: str) -> str:
+        """Copy the verified working copy next to the destination so the final replace stays atomic."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".fch",
+            prefix=".wulfpack-forge-",
+            dir=os.path.dirname(self.current_fch),
+            delete=False,
+        ) as staged:
+            staged_path = staged.name
+        shutil.copy2(working_path, staged_path)
+        return staged_path
+
+    def _finish_apply(self, backup_path):
+        self.workspace_session.update_after_apply(backup_path)
+        self.opened_root = copy.deepcopy(self.root_save)
+
+        try:
+            self.current_modified_at = os.path.getmtime(self.current_fch)
+        except OSError:
+            self.current_modified_at = None
+
+        self._set_health(
+            valid=True,
+            version=self.root_save.get("version"),
+            modified_at=self.current_modified_at,
+            backup_path=backup_path,
+        )
+
+        success_text = f"Changes applied safely to:\n{self.current_fch}"
+        if backup_path:
+            success_text += f"\n\nPrevious save backed up in the Wulfpack Forge workspace:\n{backup_path}"
+        success_text += (
+            "\n\nThe working copy passed checksum and round-trip verification, and the active file "
+            "was confirmed unchanged before replacement."
+        )
+
+        QMessageBox.information(self, "Changes Saved", success_text)
+        self.refresh_discovered_characters()

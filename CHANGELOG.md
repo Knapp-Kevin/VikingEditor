@@ -6,6 +6,12 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 
 ## Unreleased
 
+### Fixed
+- Saving no longer rewrites data you did not change. Modded or unrecognised skill IDs were previously reset to 0, hairstyles and beards missing from the built-in tables were replaced with "none", a fourth active food was dropped, and every skill level, health, and stamina value was rounded. A save without edits now produces a byte-identical file.
+- The Valheim-running check no longer treats a scan it could not complete as "not running". An inconclusive scan keeps your verified edit in the Wulfpack Forge workspace, leaves the active character untouched, and asks you to close Valheim and save again.
+- Save parsing rejects files with unconsumed trailing data, refuses character-save versions older than 40 with a clear message, preserves non-UTF-8 text exactly, and treats unknown player-data layout versions as read-only instead of writable.
+- The `fchUtil.py` command-line `unpack` mode works again.
+
 ### Added
 - A one-file Windows source launcher that creates a private Python environment, installs pinned dependencies when needed, and starts Wulfpack Forge.
 - Managed Wulfpack Forge character workspaces outside the Valheim save tree.
@@ -22,6 +28,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - Windows CI smoke coverage for the one-file source launcher.
 
 ### Changed
+- Character-save versions 40 through 43 are now write-validated (previously only 43), based on byte-identical round trips of real saves of each version; the player-data layout is still checked separately.
 - `Save Changes` now applies edits to the active loaded character through the managed workspace safety path rather than asking the player to choose the destination again.
 - Backups created during normal editing are kept under the character's Wulfpack Forge workspace instead of cluttering the active Valheim character directory.
 - Valid character-save versions outside the current write-validated set are explicitly read-only rather than being treated as silently writable.

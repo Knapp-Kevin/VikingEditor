@@ -74,6 +74,21 @@ class CharacterDiscoveryTests(unittest.TestCase):
             self.assertTrue(results[0].valid)
             self.assertEqual(results[0].version, 43)
 
+    def test_truncated_player_payload_is_listed_but_marked_invalid(self):
+        from tests.fixture_saves import realistic_player_hex, realistic_root_save, write_fch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            home = Path(temp_dir)
+            local_dir = home / ".config" / "unity3d" / "IronGate" / "Valheim" / "characters_local"
+            local_dir.mkdir(parents=True)
+            write_fch(local_dir / "cut.fch", realistic_root_save(realistic_player_hex()[:-40]))
+
+            results = discover_character_saves(home=home, system_name="Linux")
+
+            self.assertEqual(len(results), 1)
+            self.assertFalse(results[0].valid)
+            self.assertIsNotNone(results[0].error)
+
     def test_corrupt_character_is_listed_but_marked_invalid(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             home = Path(temp_dir)

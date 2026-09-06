@@ -91,7 +91,7 @@ class WorkspaceSession:
             dir=path.parent,
             delete=False,
         ) as handle:
-            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            json.dump(payload, handle, indent=2, ensure_ascii=True)
             temp_path = handle.name
         os.replace(temp_path, path)
 

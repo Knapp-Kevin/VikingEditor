@@ -126,5 +126,4 @@ class InventoryTab(QWidget):
             slot.set_item(new_item)
 
     def save_changes(self):
-        # what?
-        pass
+        """Nothing to collect: every edit mutates the item dictionaries inside ``player_data`` in place."""
