@@ -9,8 +9,8 @@ APP_SUBTITLE = "Character Editor for Valheim"
 APP_AUTHOR = "Frostwulf"
 APP_WINDOW_TITLE = f"{APP_NAME} | {APP_SUBTITLE}"
 BANNER_RELATIVE_PATH = "assets/wulfpack-forge-banner.jpg"
-MIN_BANNER_WIDTH = 1000
-MIN_BANNER_HEIGHT = 300
+MIN_BANNER_WIDTH = 800
+MIN_BANNER_HEIGHT = 250
 
 
 def resource_path(relative_path: str) -> Path:
