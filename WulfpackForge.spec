@@ -5,7 +5,10 @@ a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[("data/valheim_items.json", "data")],
+    datas=[
+        ("data/valheim_items.json", "data"),
+        ("assets/wulfpack-forge-banner.jpg", "assets"),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
