@@ -117,7 +117,7 @@ def item_icon(target: Union[str, ItemDefinition], size: int = 64) -> QIcon:
 
 def glyph_bundle_is_usable() -> bool:
     """Check objective runtime requirements without pretending CI can judge art."""
-    if len(GLYPH_IDS) != 23 or len(set(GLYPH_IDS)) != 23:
+    if not GLYPH_IDS or len(set(GLYPH_IDS)) != len(GLYPH_IDS):
         return False
 
     for glyph_id in GLYPH_IDS:

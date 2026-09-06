@@ -16,7 +16,9 @@ GLYPH_IDS = (
     "G06_greatsword", "G07_battleaxe", "G08_polearm", "G09_sledge",
     "G10_staff", "G11_bow", "G12_crossbow", "G13_arrow", "G14_shield",
     "G15_helmet", "G16_chest", "G17_legs", "G18_cape", "G19_trinket",
-    "G20_ingot", "G21_food", "G22_trophy", "G23_torch",
+    "G20_ingot", "G21_food", "G22_trophy", "G23_torch", "G24_bomb",
+    "G25_pickaxe", "G26_hammer", "G27_hoe", "G28_key", "G29_egg", "G30_misc",
+    "G31_tankard", "G32_fishing", "G33_fist", "G34_scythe",
 )
 
 TINTS = {
@@ -47,10 +49,7 @@ TINT_TOKENS = (
 
 # Masters not yet in the bundle: resolved by the same rules, drawn as placeholders until
 # their PNGs land under assets/glyphs/items/ and the id moves into GLYPH_IDS.
-PENDING_GLYPH_IDS = (
-    "G24_bomb", "G25_pickaxe", "G26_hammer", "G27_hoe", "G28_key", "G29_egg",
-    "G30_misc", "G31_tankard", "G32_fishing", "G33_fist", "G34_scythe",
-)
+PENDING_GLYPH_IDS = ()
 
 # Prefab-prefix refinements inside a type; checked before the type default.
 _PREFIX_GLYPHS = (
