@@ -2,8 +2,8 @@
 
 ## Implementation status
 
-- **Complete:** all 23 inventory glyph masters are approved, bundled under `assets/glyphs/items/`, mapped in `data/glyphs.py`, and rendered with material tinting in the Inventory grid and item editor.
-- **Wired, art pending:** 38 hairstyle and 27 beard thumbnails. The Appearance tab and the New Character dialog already show a thumbnail next to any style whose PNG exists under `assets/glyphs/hair/` or `assets/glyphs/beard/` (named by catalog id, e.g. `Hair7.png`, `BeardNone.png`); entries without art stay text-only.
+- **Complete:** all 34 inventory glyph masters are approved, bundled under `assets/glyphs/items/`, mapped in `data/glyphs.py`, and rendered with material tinting in the Inventory grid and item editor.
+- **Complete:** all 38 hairstyle and 27 beard thumbnails are bundled under `assets/glyphs/hair/` and `assets/glyphs/beard/`. The Appearance tab and New Character dialog load them automatically by catalog id.
 
 Lists every original image the bundled glyph set needs so the batch can be generated in one pass. Nothing here derives from Iron Gate art; each glyph depicts the concept, in one consistent house style, and is keyed on data the item catalog already carries (`item_type`) plus a material tint inferred from the prefab name. See `docs/BRAND_GUIDE.md` for the product palette this extends.
 
@@ -17,7 +17,7 @@ silhouette must stay readable at 32 pixels. Norse-fantasy character editor style
 not photorealistic, not pixel art. Original design, not based on any existing game's art.
 ```
 
-Generate the 23 item masters in grey; the app applies the material tint at load time. For hair and beard thumbnails use the second template below.
+Generate item masters in grey; the app applies the material tint at load time. For hair and beard thumbnails use the second template below.
 
 ```
 Flat vector schematic head-and-shoulders silhouette, front view, neutral face with no features, showing
@@ -74,9 +74,9 @@ original design.
 | G22 trophy | mounted head plaque | Trophy | 60 |
 | G23 torch | torch | Torch | 4 |
 
-## Round 2 item silhouettes (11), pending masters
+## Round 2 item silhouettes (11), complete
 
-Resolved by `data/glyphs.py` today and drawn as placeholder tiles until the PNGs land under `assets/glyphs/items/` and each id is moved from `PENDING_GLYPH_IDS` to `GLYPH_IDS`.
+Bundled under `assets/glyphs/items/`, resolved by `data/glyphs.py`, and rendered with the same runtime material tinting as the first 23 masters.
 
 | glyph id | depicts | prefabs |
 |---|---|---|
@@ -94,7 +94,7 @@ Resolved by `data/glyphs.py` today and drawn as placeholder tiles until the PNGs
 
 Customization (109) is not an inventory surface and needs no glyph. Modded prefabs with no catalog row fall back to G20 with the slate tint.
 
-Batch size: 23 silhouettes x 8 tints = 184 renders, produced by tinting one master per silhouette in code, so the generation task is 23 images.
+The 34 masters cover both item rounds. Each is tinted in code, avoiding separate rendered files for every material.
 
 ## Hairstyle thumbnails (38)
 
@@ -180,9 +180,9 @@ One silhouette per catalog beard, saved as `assets/glyphs/beard/<id>.png`. Beard
 Approved files move to `assets/glyphs/` as original bundled art. Work in progress stays outside the runtime asset tree:
 
 ```
-assets/glyphs/items/G01_sword.png ... G23_torch.png   (masters, 512x512, untinted grey)
+assets/glyphs/items/G01_sword.png ... G34_scythe.png   (masters, 512x512, untinted grey)
 assets/glyphs/hair/Hair1.png ... Hair37.png, HairNone.png
 assets/glyphs/beard/Beard1.png ... Beard26.png, BeardNone.png
 ```
 
-The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time. The inventory masters are complete; the hair and beard paths above are picked up automatically once the PNGs exist.
+The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time. The complete hair and beard sets are picked up automatically from the paths above.
