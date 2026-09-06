@@ -7,10 +7,36 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 ## Unreleased
 
 ### Added
+- Managed Wulfpack Forge character workspaces outside the Valheim save tree.
+- Immutable source snapshots captured when a verified character is opened.
+- Durable verified working copies before edits are applied to the active save.
+- External active-source change detection to prevent overwriting newer Steam, Valheim, or third-party edits.
+- Compact character status surface with `Verified`, `Compatibility unverified`, and `Needs attention` states.
+- Save version, source, modification time, catalog version, and recent-backup details in the main UI.
+- Workspace-scoped timestamped backups.
+- Regression coverage for workspace snapshots, working copies, external-change detection, and workspace backup placement.
+- Banner quality validation that rejects thumbnail-scale or aggressively compressed runtime artwork.
+
+### Changed
+- `Save Changes` now applies edits to the active loaded character through the managed workspace safety path rather than asking the player to choose the destination again.
+- Backups created during normal editing are kept under the character's Wulfpack Forge workspace instead of cluttering the active Valheim character directory.
+- Valid character-save versions outside the current write-validated set are explicitly read-only rather than being treated as silently writable.
+- README and support guidance now document the workspace, save-health states, Steam Cloud interaction, and source-change protection.
+- The canonical README/application banner was replaced with a higher-quality source asset and is now protected by a quality floor.
+
+### Planned documentation media
+- Actual application screenshots will be added to the README after the current workspace/status UI stabilizes. Mockups will not be substituted for current product screenshots.
+
+## Branding and governance milestone
+
+Merged in `3f670f3be6a52c4981cbc48f683c4a872de1d635`.
+
+### Added
 - Wulfpack Forge product identity and approved wolf banner.
 - Branded application header and packaged-brand asset verification.
 - Player-facing guidance for Steam Cloud characters that are not yet synchronized locally.
-- First-class repository governance, contribution, support, security, and community documentation.
+- First-class repository governance, contribution, support, security, architecture, agent, brand, and community documentation.
+- Structured issue and pull-request templates.
 
 ### Changed
 - Repository renamed to `Knapp-Kevin/WulfPackForge`.
