@@ -35,9 +35,11 @@ class GlyphResolutionTests(unittest.TestCase):
         }
         for prefab, glyph in expected.items():
             self.assertEqual(glyph_for(resolve_item(prefab))[0], glyph, prefab)
-        self.assertEqual(len(PENDING_GLYPH_IDS), 11)
+        # Ids migrate from PENDING_GLYPH_IDS to GLYPH_IDS as their masters are committed.
         self.assertFalse(set(PENDING_GLYPH_IDS) & set(GLYPH_IDS))
-        self.assertEqual(len(GLYPH_IDS), 23)
+        self.assertEqual(len(set(PENDING_GLYPH_IDS) | set(GLYPH_IDS)), 34)
+        for glyph in set(expected.values()):
+            self.assertIn(glyph, set(PENDING_GLYPH_IDS) | set(GLYPH_IDS), glyph)
 
     def test_pending_glyph_renders_placeholder(self):
         ui_glyphs.clear_cache()
