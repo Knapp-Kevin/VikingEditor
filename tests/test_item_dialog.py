@@ -25,7 +25,7 @@ def item_data(prefab, stack=1, quality=1, variant=0):
 class ItemEditDialogTests(unittest.TestCase):
     def test_known_item_uses_catalog_constraints(self):
         dialog = ItemEditDialog(item_data("ArrowWood", stack=20))
-        self.assertIn("Known item", dialog.catalog_status.text())
+        self.assertIn("Valheim 0.221.12 catalog", dialog.catalog_status.text())
         self.assertEqual(dialog.stack_input.maximum(), 100)
         self.assertEqual(dialog.quality_input.maximum(), 1)
         self.assertEqual(dialog.variant_input.maximum(), 0)
@@ -38,7 +38,7 @@ class ItemEditDialogTests(unittest.TestCase):
         self.assertIn("was preserved", dialog.catalog_status.text())
         dialog.close()
 
-    def test_unknown_modded_item_keeps_raw_values(self):
+    def test_unknown_or_newer_item_keeps_raw_values(self):
         dialog = ItemEditDialog(
             item_data("MyModdedLegendaryHammer", stack=777, quality=42, variant=123)
         )
@@ -47,7 +47,14 @@ class ItemEditDialogTests(unittest.TestCase):
         self.assertEqual(updated["stack"], 777)
         self.assertEqual(updated["quality"], 42)
         self.assertEqual(updated["variant"], 123)
-        self.assertIn("Custom or modded prefab", dialog.catalog_status.text())
+        self.assertIn("Not found in the Valheim 0.221.12 catalog", dialog.catalog_status.text())
+        self.assertIn("newer game version", dialog.catalog_status.text())
+        dialog.close()
+
+    def test_generated_catalog_item_is_human_readable(self):
+        dialog = ItemEditDialog(item_data("ArmorAshlandsMediumChest"))
+        self.assertIn("Breastplate of Ask", dialog.catalog_status.text())
+        self.assertIn("Chest", dialog.catalog_status.text())
         dialog.close()
 
     def test_catalog_completion_normalizes_to_prefab(self):
