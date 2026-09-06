@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import tempfile
@@ -34,11 +35,15 @@ def minimal_save_data():
     }
 
 
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 class SaveSafetyTests(unittest.TestCase):
-    def compile_candidate(self, directory, save_data=None):
+    def compile_candidate(self, directory, save_data=None, filename="candidate.fch"):
         save_data = save_data or minimal_save_data()
-        wrapper_path = os.path.join(directory, "wrapper.json")
-        candidate_path = os.path.join(directory, "candidate.fch")
+        wrapper_path = os.path.join(directory, f"{filename}.json")
+        candidate_path = os.path.join(directory, filename)
 
         with open(wrapper_path, "w", encoding="utf-8") as wrapper:
             json.dump(save_data, wrapper)
@@ -82,6 +87,26 @@ class SaveSafetyTests(unittest.TestCase):
             with open(backup_path, "rb") as backup:
                 self.assertEqual(backup.read(), original_bytes)
 
+    def test_backup_can_be_kept_in_managed_workspace_directory(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            destination = os.path.join(temp_dir, "character.fch")
+            backup_dir = os.path.join(temp_dir, "workspace", "backups")
+            original_bytes = b"known-good-save"
+            with open(destination, "wb") as existing:
+                existing.write(original_bytes)
+
+            timestamp = datetime(2026, 9, 5, 12, 34, 56, tzinfo=timezone.utc)
+            backup_path = create_timestamped_backup(
+                destination,
+                timestamp,
+                backup_directory=backup_dir,
+            )
+
+            self.assertEqual(os.path.dirname(backup_path), backup_dir)
+            self.assertEqual(os.path.basename(backup_path), "character.fch.20260905T123456Z.bak")
+            with open(backup_path, "rb") as backup:
+                self.assertEqual(backup.read(), original_bytes)
+
     def test_verified_replace_backs_up_then_replaces_destination(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             candidate_path, expected = self.compile_candidate(temp_dir)
@@ -101,6 +126,34 @@ class SaveSafetyTests(unittest.TestCase):
                 self.assertEqual(saved.read(), expected_candidate_bytes)
             with open(backup_path, "rb") as backup:
                 self.assertEqual(backup.read(), original_bytes)
+
+    def test_external_destination_change_blocks_replace_before_backup(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            candidate_path, expected = self.compile_candidate(temp_dir)
+            destination = os.path.join(temp_dir, "character.fch")
+            opened_bytes = b"opened-version"
+            with open(destination, "wb") as existing:
+                existing.write(opened_bytes)
+            opened_hash = sha256_bytes(opened_bytes)
+
+            externally_changed = b"newer-steam-or-valheim-version"
+            with open(destination, "wb") as existing:
+                existing.write(externally_changed)
+
+            backup_dir = os.path.join(temp_dir, "workspace", "backups")
+            with self.assertRaises(SaveVerificationError):
+                replace_verified_save(
+                    candidate_path,
+                    destination,
+                    expected,
+                    backup_directory=backup_dir,
+                    expected_destination_sha256=opened_hash,
+                )
+
+            with open(destination, "rb") as existing:
+                self.assertEqual(existing.read(), externally_changed)
+            self.assertFalse(os.path.isdir(backup_dir))
+            self.assertTrue(os.path.isfile(candidate_path))
 
     def test_failed_verification_leaves_destination_untouched(self):
         with tempfile.TemporaryDirectory() as temp_dir:
