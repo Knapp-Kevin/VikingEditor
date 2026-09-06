@@ -28,6 +28,7 @@ class SaveHealthReport:
     detail: str
     error: Optional[str] = None
     backup_path: Optional[str] = None
+    source_changed: bool = False
 
     @property
     def save_version_label(self) -> str:
@@ -62,6 +63,7 @@ def build_save_health_report(
     error: Optional[str] = None,
     backup_path: Optional[str] = None,
     catalog_game_version: Optional[str] = CATALOG_GAME_VERSION,
+    source_changed: bool = False,
 ) -> SaveHealthReport:
     source = (source or "Local file").strip() or "Local file"
 
@@ -80,6 +82,25 @@ def build_save_health_report(
             detail=detail,
             error=error,
             backup_path=backup_path,
+            source_changed=source_changed,
+        )
+
+    if source_changed:
+        return SaveHealthReport(
+            state=SAVE_STATE_NEEDS_ATTENTION,
+            verification_ok=True,
+            writable=False,
+            save_version=version,
+            source=source,
+            modified_at=modified_at,
+            catalog_game_version=catalog_game_version,
+            detail=(
+                "The active character file changed outside Wulfpack Forge after it was opened. "
+                "Reload the character before applying changes so a newer Steam, Valheim, or external edit is not overwritten."
+            ),
+            error="External source change detected",
+            backup_path=backup_path,
+            source_changed=True,
         )
 
     if version not in SUPPORTED_CHARACTER_SAVE_VERSIONS:
@@ -99,6 +120,7 @@ def build_save_health_report(
             ),
             error=None,
             backup_path=backup_path,
+            source_changed=False,
         )
 
     return SaveHealthReport(
@@ -111,8 +133,9 @@ def build_save_health_report(
         catalog_game_version=catalog_game_version,
         detail=(
             f"Checksum and structure verified. Save version {version} is in the current "
-            "write-validated set."
+            "write-validated set. Wulfpack Forge keeps a protected workspace snapshot before edits are applied."
         ),
         error=None,
         backup_path=backup_path,
+        source_changed=False,
     )
