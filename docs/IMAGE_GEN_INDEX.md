@@ -98,11 +98,82 @@ Batch size: 23 silhouettes x 8 tints = 184 renders, produced by tinting one mast
 
 ## Hairstyle thumbnails (38)
 
-One original schematic head-and-shoulders silhouette per entry in `data/hairs.py`, same style, hair mass drawn from the entry's name (Windswept, High Ponytail, Pigtails, Low Ponytail, Short, Long and Loose, Dragonslayer, Parted, Old One-Eye, Side Swept, Long Braid, Matronly, Twin Braids, Speed Demon, Pulled Back Curls, Gathered Braids, Neat Braids, Royal Braids, Painter Curls, Tidy Curls, Twin Buns, Single Bun, Short Curls, Shaved and Braided, Knot, Short Locs, Braids of Strength, Merchant's Braid, Tucked Back, Loose Waves, Gathered Locs, Mullet, Vinland Shave, Castellan, Champion, Chronicler, Sunbringer) plus "No Hair". Hair colour is applied in the app from the save's hair_color.
+One original schematic head-and-shoulders silhouette per catalog hairstyle, same house style, saved as `assets/glyphs/hair/<id>.png`. Hair colour is applied in the app from the save's hair_color, so generate in mid-grey. Accuracy rule: the silhouette must match the in-game style's shape (length, braids, buns, parting, shaved sides), not just the name. The maintainer holds a private reference sheet rendered from the game's own meshes for the styles marked "mesh reference available"; the rest are generated from the name and in-game knowledge.
+
+| id | name | reference |
+|---|---|---|
+| HairNone | No Hair | name only |
+| Hair27 | Braids of Strength | mesh reference available |
+| Hair34 | Castellan | name only |
+| Hair35 | Champion | name only |
+| Hair36 | Chronicler | name only |
+| Hair7 | Dragonslayer | name only |
+| Hair16 | Gathered Braids | mesh reference available |
+| Hair31 | Gathered Locs | mesh reference available |
+| Hair2 | High Ponytail | name only |
+| Hair25 | Knot | mesh reference available |
+| Hair6 | Long and Loose | mesh reference available |
+| Hair11 | Long Braid | mesh reference available |
+| Hair30 | Loose Waves | mesh reference available |
+| Hair4 | Low Ponytail | mesh reference available |
+| Hair12 | Matronly | mesh reference available |
+| Hair28 | Merchant's Braid | mesh reference available |
+| Hair32 | Mullet | name only |
+| Hair17 | Neat Braids | mesh reference available |
+| Hair9 | Old One-Eye | mesh reference available |
+| Hair19 | Painter Curls | mesh reference available |
+| Hair8 | Parted | mesh reference available |
+| Hair3 | Pigtails | mesh reference available |
+| Hair15 | Pulled Back Curls | mesh reference available |
+| Hair18 | Royal Braids | mesh reference available |
+| Hair24 | Shaved and Braided | mesh reference available |
+| Hair5 | Short | mesh reference available |
+| Hair23 | Short Curls | mesh reference available |
+| Hair26 | Short Locs | mesh reference available |
+| Hair10 | Side Swept | mesh reference available |
+| Hair22 | Single Bun | mesh reference available |
+| Hair14 | Speed Demon | mesh reference available |
+| Hair37 | Sunbringer | name only |
+| Hair20 | Tidy Curls | mesh reference available |
+| Hair29 | Tucked Back | mesh reference available |
+| Hair13 | Twin Braids | mesh reference available |
+| Hair21 | Twin Buns | mesh reference available |
+| Hair33 | Vinland Shave | name only |
+| Hair1 | Windswept | mesh reference available |
 
 ## Beard thumbnails (27)
 
-One silhouette per catalog beard: Majestic, Twin Braids, Short, Straight, Single Braid, Loose Braid, Split Shave, Thick, Trobadour, Top Braid, Facewarmer, Royal, Triplets, Split Braid, Mini Braid, Stonedweller, Neat, Jarl Braids, Bushy, Spiky, Tidy, Mustache, Crumb Catcher, Waxed, Trimmed, Handlebar (Beard1-Beard26 in that order), plus "No Beard" (BeardNone).
+One silhouette per catalog beard, saved as `assets/glyphs/beard/<id>.png`. Beard shapes in the game are carried mostly by textures, so the mesh renders are not a useful reference; generate from the names with the following shape hints: Majestic (full, long, squared), Twin Braids (two braids from the chin), Short (close-cropped full beard), Straight (medium full beard combed straight down), Single Braid (one central chin braid), Loose Braid (loose chin braid), Split Shave (beard split down the middle), Thick (dense full beard), Trobadour (goatee with mustache), Top Braid (braid across the upper lip line), Facewarmer (very long full beard), Royal (long, groomed, pointed), Triplets (three braids), Split Braid (forked braid), Mini Braid (short single braid), Stonedweller (broad dwarf-style beard), Neat (short trimmed full beard), Jarl Braids (long with multiple ornamented braids), Bushy (wild full beard), Spiky (short beard with spiked chin), Tidy (neat short goatee), Mustache (mustache only), Crumb Catcher (mustache with small chin patch), Waxed (waxed handlebar mustache), Trimmed (stubble-length beard), Handlebar (handlebar mustache with short beard).
+
+| id | name |
+|---|---|
+| BeardNone | No Beard |
+| Beard19 | Bushy |
+| Beard23 | Crumb Catcher |
+| Beard11 | Facewarmer |
+| Beard26 | Handlebar |
+| Beard18 | Jarl Braids |
+| Beard6 | Loose Braid |
+| Beard1 | Majestic |
+| Beard15 | Mini Braid |
+| Beard22 | Mustache |
+| Beard17 | Neat |
+| Beard12 | Royal |
+| Beard3 | Short |
+| Beard5 | Single Braid |
+| Beard20 | Spiky |
+| Beard14 | Split Braid |
+| Beard7 | Split Shave |
+| Beard16 | Stonedweller |
+| Beard4 | Straight |
+| Beard8 | Thick |
+| Beard21 | Tidy |
+| Beard10 | Top Braid |
+| Beard25 | Trimmed |
+| Beard13 | Triplets |
+| Beard9 | Trobadour |
+| Beard2 | Twin Braids |
+| Beard24 | Waxed |
 
 ## Output manifest
 
