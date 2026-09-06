@@ -12,10 +12,9 @@ def _verify_catalog_bundle() -> bool:
 
 
 def _verify_brand_bundle() -> bool:
-    from ui.branding import banner_path
+    from ui.branding import banner_is_usable
 
-    path = banner_path()
-    return path.is_file() and path.stat().st_size > 50_000
+    return banner_is_usable()
 
 
 def main():
