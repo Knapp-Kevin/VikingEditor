@@ -10,6 +10,7 @@ on:
       - "data/**"
       - "assets/**"
       - "requirements.txt"
+      - "run-wulfpack-forge.cmd"
       - "WulfpackForge.spec"
       - ".github/workflows/package-windows.yml"
   push:
@@ -41,6 +42,10 @@ jobs:
 
       - name: Run tests
         run: python -m unittest discover -s tests -v
+
+      - name: Smoke test Windows source launcher
+        shell: cmd
+        run: run-wulfpack-forge.cmd --smoke-test
 
       - name: Build portable executable
         run: pyinstaller --clean --noconfirm WulfpackForge.spec

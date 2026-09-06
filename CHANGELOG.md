@@ -7,6 +7,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 ## Unreleased
 
 ### Added
+- A one-file Windows source launcher that creates a private Python environment, installs pinned dependencies when needed, and starts Wulfpack Forge.
 - Managed Wulfpack Forge character workspaces outside the Valheim save tree.
 - Immutable source snapshots captured when a verified character is opened.
 - Durable verified working copies before edits are applied to the active save.
@@ -18,6 +19,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - Current application screenshots for the main save-status surface, Appearance tab, and catalog-aware Inventory editor.
 - Runtime banner validation that rejects non-image bytes instead of accepting a corrupt file based on size alone.
 - Regression coverage for banner decoding and save-status text contrast.
+- Windows CI smoke coverage for the one-file source launcher.
 
 ### Changed
 - `Save Changes` now applies edits to the active loaded character through the managed workspace safety path rather than asking the player to choose the destination again.
@@ -28,6 +30,8 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - Save-status metadata and guidance now use readable foreground colors on the dark status surface.
 - README release media now shows the current application with synthetic, publication-safe character data.
 - README availability guidance now states explicitly that no public Windows release exists yet and distinguishes temporary CI artifacts from release downloads.
+- README availability guidance now includes a usable run-now path without presenting source setup as a public installer or release.
+- The documented Python range now matches the pinned PySide6 runtime requirement; Python 3.12 remains the recommended Windows version.
 
 ## Branding and governance milestone
 

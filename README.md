@@ -22,9 +22,19 @@ Once the first public Windows release is published, the intended player path is 
 
 **No public Windows release has been published yet.** The Windows workflow builds and smoke-tests `WulfpackForge.exe` and `WulfpackForge-windows-x64.zip`, but its temporary GitHub Actions artifacts are validation evidence, not durable public releases.
 
-For now, contributors and advanced users can use [Running from source](#running-from-source). That path requires Python. Ordinary Windows players should wait for the first published release rather than downloading an unverified binary from somewhere else.
+You can still use Wulfpack Forge now by running it from source. On Windows, the included launcher reduces setup and startup to one file after Python is installed. This is a source setup, not a packaged installer.
 
 The first public release remains gated on the Valheim 1.0 compatibility work in [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2). When that gate passes, the packaged Windows build will provide the no-Python download-and-run experience described above.
+
+### Run now on Windows
+
+1. Install [64-bit Python 3.12](https://www.python.org/downloads/windows/) and keep the Python launcher selected during installation.
+2. [Download the current Wulfpack Forge source ZIP](https://github.com/Knapp-Kevin/WulfPackForge/archive/refs/heads/main.zip) and extract the entire ZIP.
+3. Double-click **`run-wulfpack-forge.cmd`** in the extracted folder.
+
+The launcher creates a private Python environment inside the extracted folder, installs the pinned dependencies on the first run, and starts Wulfpack Forge. The first run needs an internet connection and may take several minutes. Later runs reuse that environment unless `requirements.txt` changes.
+
+The current build enables saving only for character-save format version 43. A structurally valid save with an unvalidated version can be inspected, but **Save Changes** remains disabled. Valheim 1.0 compatibility has not been claimed or validated yet.
 
 ## See it in action
 
@@ -153,7 +163,7 @@ Source installation is intended for contributors, developers, and advanced users
 
 ### Requirements
 
-- Python 3.9+
+- Python 3.10 through 3.14; Python 3.12 is recommended and used by Windows CI
 - Git
 
 ### Clone
@@ -174,6 +184,8 @@ python -m pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+Windows users may instead double-click `run-wulfpack-forge.cmd` after cloning or extracting the repository. The launcher manages its own environment and dependencies.
 
 ## Building the Windows application
 

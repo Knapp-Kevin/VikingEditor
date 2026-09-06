@@ -14,6 +14,20 @@ Check the following first:
 6. **Keep workspace snapshots and backups.** Do not delete the character's Wulfpack Forge workspace while investigating a save problem.
 7. **Check compatibility status.** Major Valheim updates may require explicit revalidation before Wulfpack Forge is considered compatible.
 
+## Windows source-launcher problems
+
+The current run-now path requires the complete source ZIP and 64-bit Python 3.10 through 3.14. Python 3.12 is recommended.
+
+If `run-wulfpack-forge.cmd` does not start the application:
+
+1. confirm the ZIP was extracted instead of opening the launcher inside the ZIP preview;
+2. confirm `main.py` and `requirements.txt` are beside the launcher;
+3. confirm the Python launcher was selected when Python was installed;
+4. keep the command window open and include its exact error message in a bug report;
+5. if the private environment is damaged, delete only `.wulfpack-forge-venv` from the extracted Wulfpack Forge folder and run the launcher again.
+
+The first run downloads the pinned dependencies and therefore needs an internet connection. Later runs reuse the private environment unless the requirements change.
+
 ## Steam Cloud characters
 
 Wulfpack Forge does not read remote Steam Cloud storage directly.
