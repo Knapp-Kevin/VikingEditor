@@ -13,10 +13,20 @@ class SaveVerificationError(Exception):
     """Raised when a compiled Valheim save fails structural verification."""
 
 
-def _next_backup_path(destination: str, timestamp: Optional[datetime] = None) -> str:
+def _next_backup_path(
+    destination: str,
+    timestamp: Optional[datetime] = None,
+    backup_directory: Optional[str] = None,
+) -> str:
     moment = timestamp or datetime.now(timezone.utc)
     stamp = moment.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    base = f"{destination}.{stamp}.bak"
+
+    if backup_directory:
+        directory = Path(backup_directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        base = str(directory / f"{Path(destination).name}.{stamp}.bak")
+    else:
+        base = f"{destination}.{stamp}.bak"
 
     if not os.path.exists(base):
         return base
@@ -27,15 +37,21 @@ def _next_backup_path(destination: str, timestamp: Optional[datetime] = None) ->
     return f"{base}.{counter}"
 
 
-def create_timestamped_backup(destination: str, timestamp: Optional[datetime] = None) -> Optional[str]:
+def create_timestamped_backup(
+    destination: str,
+    timestamp: Optional[datetime] = None,
+    backup_directory: Optional[str] = None,
+) -> Optional[str]:
     """Copy an existing destination before it is replaced.
 
     Returns the backup path, or None when the destination does not yet exist.
+    When ``backup_directory`` is provided, the backup is stored there instead of
+    beside the active Valheim save.
     """
     if not os.path.isfile(destination):
         return None
 
-    backup_path = _next_backup_path(destination, timestamp)
+    backup_path = _next_backup_path(destination, timestamp, backup_directory)
     shutil.copy2(destination, backup_path)
     return backup_path
 
@@ -90,13 +106,21 @@ def verify_fch_round_trip(fch_path: str, expected_root: Optional[dict] = None) -
     return parsed
 
 
-def replace_verified_save(candidate_path: str, destination: str, expected_root: Optional[dict] = None) -> Optional[str]:
+def replace_verified_save(
+    candidate_path: str,
+    destination: str,
+    expected_root: Optional[dict] = None,
+    backup_directory: Optional[str] = None,
+) -> Optional[str]:
     """Verify a candidate, back up any existing save, then atomically replace it."""
     verify_fch_round_trip(candidate_path, expected_root)
 
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-    backup_path = create_timestamped_backup(destination)
+    backup_path = create_timestamped_backup(
+        destination,
+        backup_directory=backup_directory,
+    )
     os.replace(candidate_path, destination)
     return backup_path
