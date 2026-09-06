@@ -11,7 +11,7 @@ APP_WINDOW_TITLE = f"{APP_NAME} | {APP_SUBTITLE}"
 BANNER_RELATIVE_PATH = "assets/wulfpack-forge-banner.jpg"
 MIN_BANNER_WIDTH = 1200
 MIN_BANNER_HEIGHT = 400
-MIN_BANNER_BYTES = 30_000
+MIN_BANNER_BYTES = 12_000
 
 
 def resource_path(relative_path: str) -> Path:
