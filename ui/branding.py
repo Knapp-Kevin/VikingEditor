@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from PySide6.QtGui import QImageReader
+
 
 APP_NAME = "Wulfpack Forge"
 APP_SUBTITLE = "Character Editor for Valheim"
@@ -30,4 +32,8 @@ def banner_is_usable() -> bool:
     bundles, not to turn CI into an image-quality judge.
     """
     path = banner_path()
-    return path.is_file() and path.stat().st_size >= MIN_BANNER_BYTES
+    if not path.is_file() or path.stat().st_size < MIN_BANNER_BYTES:
+        return False
+
+    reader = QImageReader(str(path))
+    return reader.canRead() and not reader.read().isNull()

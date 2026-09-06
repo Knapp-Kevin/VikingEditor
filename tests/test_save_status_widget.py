@@ -31,6 +31,8 @@ class SaveStatusWidgetTests(unittest.TestCase):
         self.assertIn("Catalog: Valheim", widget.meta_label.text())
         self.assertIn("Backup: frostwulf.fch.20260906.bak", widget.meta_label.text())
         self.assertIn("protected workspace snapshot", widget.detail_label.text())
+        self.assertIn("#c4d8df", widget.meta_label.styleSheet())
+        self.assertIn("#a9c1ca", widget.detail_label.styleSheet())
 
     def test_unverified_compatibility_is_visible_without_claiming_corruption(self):
         widget = SaveStatusWidget()

@@ -21,7 +21,7 @@ Canonical repository asset:
 
 The banner establishes the visual direction: a frozen wolf, dark Norse-fantasy atmosphere, ice-blue illumination, dark charcoal/navy surfaces, silver highlights, and restrained warm ember accents.
 
-The canonical raster must remain suitable for full-width README display. Do not replace it with a thumbnail or aggressively compressed derivative. The runtime quality gate requires at least **1200×400 pixels** and a non-trivial encoded size so a visibly degraded asset fails validation instead of quietly shipping.
+The canonical raster is a **2048×682** progressive JPEG suitable for full-width README display. Do not replace it with a thumbnail or aggressively compressed derivative. Runtime validation confirms that the asset is bundled, non-trivial, and decodable; visual quality remains a human review responsibility rather than a pretend CI sharpness score.
 
 Do not replace the approved banner casually or create competing product marks inside the repository.
 
@@ -59,9 +59,9 @@ Do not sacrifice native platform clarity for decorative theming.
 
 ## Screenshots
 
-README screenshots should show the **actual current Wulfpack Forge UI**, not concept art or mockups. Capture them from a validated packaged or source build after the relevant UI tranche is stable, and refresh them when the visible product materially changes.
+README screenshots live in `docs/screenshots/` and should show the **actual current Wulfpack Forge UI**, not concept art or mockups. Capture them from a validated packaged or source build after the relevant UI tranche is stable, and refresh them when the visible product materially changes.
 
-Prefer a small set of useful screenshots, such as the main character/status view, appearance editing, and inventory editing. Screenshots should demonstrate the product rather than becoming a second gallery of decorative imagery.
+Prefer a small set of useful screenshots, such as the main character/status view, appearance editing, and inventory editing. Use synthetic or disposable character data, exclude personal filesystem paths and private character details, and make the visible state understandable to ordinary players. Screenshots should demonstrate the product rather than becoming a second gallery of decorative imagery.
 
 ## Typography
 
