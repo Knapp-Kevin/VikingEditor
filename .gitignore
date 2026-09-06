@@ -1,4 +1,5 @@
 /venv
+/.wulfpack-forge-venv
 *.json
 *.txt
 *.fch
