@@ -34,7 +34,7 @@ The first public release remains gated on the Valheim 1.0 compatibility work in 
 
 The launcher creates a private Python environment inside the extracted folder, installs the pinned dependencies on the first run, and starts Wulfpack Forge. The first run needs an internet connection and may take several minutes. Later runs reuse that environment unless `requirements.txt` changes.
 
-The current build enables saving only for character-save format version 43. A structurally valid save with an unvalidated version can be inspected, but **Save Changes** remains disabled. Valheim 1.0 compatibility has not been claimed or validated yet.
+The current build enables saving for character-save format versions 40 through 43 whose player data uses the known layout. A structurally valid save with any other version can be inspected, but **Save Changes** remains disabled. Valheim 1.0 compatibility has not been claimed or validated yet.
 
 ## See it in action
 
@@ -46,21 +46,21 @@ Appearance controls use readable choices and color previews, so changing a model
 
 ![Wulfpack Forge Appearance tab showing synthetic character customization controls](docs/screenshots/appearance.png)
 
-Inventory editing combines the familiar character grid with searchable catalog guidance, known stack and quality limits, and a raw-prefab path for modded or newer items.
+Inventory editing combines the familiar character grid with original item-category glyphs, material tinting, searchable catalog guidance, known stack and quality limits, and a raw-prefab path for modded or newer items.
 
-![Wulfpack Forge Inventory tab showing synthetic items and the catalog-aware Bronze Sword editor](docs/screenshots/inventory.png)
+![Wulfpack Forge Inventory tab showing synthetic items and the categorised, searchable item picker with original glyph art](docs/screenshots/inventory.png)
 
 ## What Wulfpack Forge can edit
 
 | Area | Capabilities |
 |---|---|
 | Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
-| Inventory | Searchable vanilla item catalog, raw prefab support, stacks, durability, quality, variants, equipped state |
+| Inventory | Categorised item picker with search and original tinted glyphs, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
 | Skills | Supported Valheim skill levels |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |
 
-Known vanilla items use human-readable names while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved rather than rejected simply because the bundled catalog does not recognize them.
+Known vanilla items use human-readable names and an appropriate original silhouette while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved and receive a neutral fallback glyph rather than being rejected simply because the bundled catalog does not recognize them.
 
 ## Character discovery and Steam Cloud
 
@@ -118,8 +118,9 @@ Character editing should not require optimism as a recovery plan. Wulfpack Forge
 - **Immutable opened snapshot.** A verified copy of the source is preserved in the managed workspace when editing begins.
 - **Verified working copy.** The edited candidate is verified and stored in the Wulfpack Forge workspace before the active save is replaced.
 - **External-change detection.** The active source hash is checked before replacement so newer Steam, Valheim, or external edits are not silently overwritten.
-- **Valheim process protection.** Writes are blocked while Valheim is running, with a second check immediately before replacement.
-- **Candidate-first compilation.** Edited data is compiled to a temporary `.fch` candidate rather than written over the destination.
+- **Preserve-by-default write-back.** Only the fields you actually change are written. Skills, hairstyles, beards, foods, items, and mod data that the editor does not recognise pass through untouched, and saving without changing anything produces an identical file.
+- **Valheim process protection.** Writes are blocked while Valheim is running, with a second check immediately before replacement. If that check cannot identify every running process, Wulfpack Forge keeps your verified edit in its workspace, leaves the active character untouched, and asks you to close Valheim and save again.
+- **Candidate-first compilation.** Edited data is compiled to a temporary `.fch` candidate inside the Wulfpack Forge workspace rather than written over the destination.
 - **Strict SHA-512 verification.** The generated save envelope and checksum are validated.
 - **Round-trip verification.** The candidate is reparsed and compared with the expected serialized data.
 - **Automatic timestamped backup.** The current active save is copied into the character's Wulfpack Forge workspace before replacement.
@@ -134,7 +135,7 @@ The bundled item catalog is currently generated from **Valheim 0.221.12** data a
 
 Valheim 1.0 is scheduled for **September 9, 2026**. Wulfpack Forge will not claim post-1.0 compatibility merely because the application launches. The release gate tracked in [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2) requires a deliberate catalog refresh plus real 1.0 character-save validation, including load, no-op round trip, appearance editing, inventory editing, backup behavior, atomic replacement, and in-game acceptance.
 
-The current parser/serializer is explicitly validated for character-save version **43**. A structurally valid save using a different character-save version is shown as **Compatibility unverified** and remains read-only until that version has its own evidence.
+The current parser/serializer is write-validated for character-save versions **40 through 43**: real saves of each version round-trip byte-identical through the codec, and the inner player-data layout is checked separately. A structurally valid save using any other character-save version, or an unknown player-data layout, is shown as **Compatibility unverified** and remains read-only until it has its own evidence.
 
 Until the 1.0 gate passes, unknown items are preserved conservatively. They may be modded content or legitimate items introduced by a newer Valheim build.
 
@@ -194,7 +195,7 @@ The repository uses PyInstaller to produce a self-contained Windows executable. 
 - installs application dependencies;
 - runs the automated test suite;
 - builds `WulfpackForge.exe`;
-- bundles the versioned item catalog and canonical Wulfpack Forge banner;
+- bundles the versioned item catalog, canonical Wulfpack Forge banner, and original inventory glyph masters;
 - smoke-tests the packaged executable and required assets;
 - creates a Windows ZIP package;
 - generates SHA-256 checksums;
@@ -215,6 +216,7 @@ Automated coverage currently includes:
 - item catalog generation and version drift;
 - catalog resolution and duplicate-name behavior;
 - unknown/modded item preservation;
+- inventory glyph mapping, fallback, tinting, decoding, and transparency;
 - offscreen Qt widget behavior;
 - Wulfpack Forge branding identity and decodable runtime asset validation;
 - Python source compilation;

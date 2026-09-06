@@ -1,47 +1,45 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QFormLayout, QLineEdit
 
+from ui.fieldTracker import FieldTracker
+
+
 class MiscTab(QWidget):
+    """Character identity fields stored on the outer container."""
+
     def __init__(self):
         super().__init__()
         self.player_data = None
         self.root_save = None
+        self.tracker = FieldTracker()
 
         main_layout = QVBoxLayout(self)
 
-        # 1. Identity Group
         identity_group = QGroupBox("Character Identity")
         identity_layout = QFormLayout(identity_group)
 
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter character name...")
-        
+
         identity_layout.addRow("Character Name:", self.name_input)
         main_layout.addWidget(identity_group)
         main_layout.addStretch()
 
     def load_data(self, player_data, root_save=None):
-        """Loads data, looking first at the outer .fch wrapper, with fallback to inner data."""
+        """The character name lives on the outer container; the payload is not consulted."""
+        self.tracker.clear()
         self.player_data = player_data
         self.root_save = root_save
 
-        # fallback logic, first check outer container, then inner player data, no reason except fun and to show that we can.
-        char_name = "Viking"
+        name = "Viking"
         if self.root_save and "character_name" in self.root_save:
-            char_name = self.root_save["character_name"]
-        elif self.player_data and "character_name" in self.player_data:
-            char_name = self.player_data["character_name"]
-
-        self.name_input.setText(char_name)
+            name = self.root_save["character_name"]
+        self.name_input.setText(name)
+        self.tracker.remember("character_name", self.name_input.text())
 
     def save_changes(self):
-        """Writes changes directly to the outer container dictionary."""
+        """Write the name to the outer container only when it was edited and is not blank."""
         new_name = self.name_input.text().strip()
-        if not new_name:
+        if not new_name or self.root_save is None:
             return
-        # write to outer container if available
-        if self.root_save:
+        if self.tracker.changed("character_name", self.name_input.text()):
             self.root_save["character_name"] = new_name
-            
-        # now inner player data, if available
-        if self.player_data:
-            self.player_data["character_name"] = new_name

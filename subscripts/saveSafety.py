@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from subscripts.fchUtil import decompile_fch
+from subscripts.fchUtil import parse_save
+from subscripts.saveErrors import SaveFormatError
 
 
-class SaveVerificationError(Exception):
+class SaveVerificationError(SaveFormatError):
     """Raised when a compiled Valheim save fails structural verification."""
 
 
@@ -64,8 +65,8 @@ def create_timestamped_backup(
     return backup_path
 
 
-def _read_and_validate_checksum(fch_path: str) -> None:
-    """Validate the outer .fch framing and SHA-512 checksum strictly."""
+def _read_and_validate_checksum(fch_path: str) -> bytes:
+    """Validate the outer .fch framing and SHA-512 checksum strictly; return the file bytes."""
     with open(fch_path, "rb") as f:
         file_bytes = f.read()
 
@@ -95,14 +96,15 @@ def _read_and_validate_checksum(fch_path: str) -> None:
     calculated_hash = hashlib.sha512(zpackage_bytes).digest()
     if calculated_hash != stored_hash:
         raise SaveVerificationError("Save failed SHA-512 checksum verification.")
+    return file_bytes
 
 
 def verify_fch_round_trip(fch_path: str, expected_root: Optional[dict] = None) -> dict:
     """Strictly verify checksum, parseability, and optional expected container data."""
-    _read_and_validate_checksum(fch_path)
+    file_bytes = _read_and_validate_checksum(fch_path)
 
     try:
-        parsed = decompile_fch(fch_path)
+        parsed = parse_save(file_bytes)
     except Exception as exc:
         raise SaveVerificationError(f"Save could not be reparsed: {exc}") from exc
 

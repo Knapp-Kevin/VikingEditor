@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtGui import QImageReader
+from PySide6.QtGui import QIcon, QImageReader
 
 
 APP_NAME = "Wulfpack Forge"
@@ -10,6 +10,8 @@ APP_AUTHOR = "Frostwulf"
 APP_WINDOW_TITLE = f"{APP_NAME} | {APP_SUBTITLE}"
 BANNER_RELATIVE_PATH = "assets/wulfpack-forge-banner.jpg"
 MIN_BANNER_BYTES = 12_000
+APP_ICON_RELATIVE_PATH = "assets/FrostWulf-favicon.png"
+APP_ICO_RELATIVE_PATH = "assets/wulfpack-forge.ico"
 
 
 def resource_path(relative_path: str) -> Path:
@@ -22,6 +24,16 @@ def resource_path(relative_path: str) -> Path:
 
 def banner_path() -> Path:
     return resource_path(BANNER_RELATIVE_PATH)
+
+
+def app_icon_path() -> Path:
+    return resource_path(APP_ICON_RELATIVE_PATH)
+
+
+def app_icon() -> QIcon:
+    """The Frostwulf mark as a QIcon, or a null icon when the asset is absent."""
+    path = app_icon_path()
+    return QIcon(str(path)) if path.is_file() else QIcon()
 
 
 def banner_is_usable() -> bool:

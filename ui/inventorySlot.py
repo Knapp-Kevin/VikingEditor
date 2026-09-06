@@ -1,9 +1,12 @@
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QToolButton
 
 from data.items import resolve_item
+from ui.glyphs import item_icon
 
 
-class InventorySlot(QPushButton):
+class InventorySlot(QToolButton):
     """A visual representation of a single Valheim inventory grid tile."""
 
     def __init__(self, x, y, parent=None):
@@ -11,7 +14,9 @@ class InventorySlot(QPushButton):
         self.grid_x = x
         self.grid_y = y
         self.item_data = None
-        self.setFixedSize(90, 90)
+        self.setFixedSize(104, 112)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.setIconSize(QSize(56, 56))
         self.update_visuals()
 
     def set_item(self, item_data):
@@ -34,10 +39,14 @@ class InventorySlot(QPushButton):
                 else prefab.replace("$item_", "").replace("_", " ").title()
             )
 
-            equipped_marker = "\n[ EQUIPPED ]" if is_equipped else ""
-            self.setText(f"{display_name}\nx{stack}{equipped_marker}")
+            self.setIcon(item_icon(prefab, 56))
+            self.setText(f"{display_name}\nx{stack}")
+            state = "equipped" if is_equipped else "not equipped"
+            self.setAccessibleName(f"{display_name}, stack {stack}, {state}")
             self.setToolTip(
                 f"Prefab: {prefab}\n"
+                f"Item: {display_name}\n"
+                f"Equipped: {'Yes' if is_equipped else 'No'}\n"
                 f"Quality: {self.item_data.get('quality', 1)}\n"
                 f"Variant: {self.item_data.get('variant', 0)}"
             )
@@ -52,7 +61,9 @@ class InventorySlot(QPushButton):
                     "background-color: #3e2723; color: #d7ccc8; border: 1px solid #5d4037;"
                 )
         else:
+            self.setIcon(QIcon())
             self.setText(f"({self.grid_x}, {self.grid_y})")
+            self.setAccessibleName(f"Empty inventory slot {self.grid_x}, {self.grid_y}")
             self.setToolTip("Empty inventory slot")
             self.setStyleSheet(
                 "background-color: #1a1a1a; color: #444444; border: 1px dashed #333333;"

@@ -25,6 +25,14 @@ The canonical raster is a **2048×682** progressive JPEG suitable for full-width
 
 Do not replace the approved banner casually or create competing product marks inside the repository.
 
+## Application icon
+
+Canonical repository asset:
+
+`assets/FrostWulf-favicon.png`
+
+The Frostwulf mark (white wolf head on an ice-blue compass ring, transparent background, 1254×1254) is the application icon. It is applied once at application level so every window and dialog inherits it, and it is the icon of the packaged executable through `assets/wulfpack-forge.ico`, which `tools/make_app_icon.py` generates from the PNG. Edit the PNG, re-run the tool, and commit both files together.
+
 ## README usage
 
 The banner should appear across the top of the README before the product heading.
@@ -43,6 +51,19 @@ Rules:
 - scale/crop rather than distort the wolf artwork;
 - provide a text fallback if the image cannot be loaded;
 - keep the visual treatment restrained enough that this remains a utility, not a game launcher.
+
+### In-app inventory glyphs
+
+Canonical inventory masters live in `assets/glyphs/items/`. They are original 512×512 transparent grayscale artwork, selected by item shape and catalog type, then tinted at runtime using the material palette in `data/glyphs.py`.
+
+- keep silhouettes readable at the 56 px Inventory size and the 32 px design floor;
+- preserve transparent backgrounds, one dark outline, and top-left two-tone lighting;
+- use the neutral generic-material glyph for unknown items rather than blocking or rewriting them;
+- keep item-art decisions strictly presentational;
+- record approved asset hashes in `assets/glyphs/SHA256SUMS`;
+- do not substitute extracted Valheim art, official logos, or VikingEditor branding.
+
+Hair and beard thumbnails remain a separate backlog in `docs/IMAGE_GEN_INDEX.md`; their reserved paths are not runtime requirements yet.
 
 ## UI direction
 

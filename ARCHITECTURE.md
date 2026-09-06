@@ -45,6 +45,7 @@ Owns the player-facing desktop experience.
 - `mainWindow.py` coordinates discovery, loading, workspace creation, editing, health state, and saving.
 - `saveStatusWidget.py` renders compact verification and compatibility state.
 - `branding.py` resolves Wulfpack Forge product metadata and bundled assets.
+- `itemPickerDialog.py` presents the catalog as curated categories (`data/item_groups.py`) with an icon grid and search; `glyphs.py` renders, tints, caches, and validates original inventory glyph masters under `assets/glyphs/items/`, with safe fallback behavior resolved by `data/glyphs.py`.
 - editor tabs own their respective user controls and data mapping.
 
 The UI should not bypass the workspace or save-safety layer.
@@ -120,6 +121,7 @@ Separates discoverability metadata from write policy.
 
 - `valheim_items.json` is generated, versioned item metadata.
 - `items.py` loads catalog data and owns curated safety constraints/resolution behavior.
+- `glyphs.py` maps prefab/category metadata to presentation-only silhouettes and material tints.
 
 A catalog refresh must not silently alter write constraints.
 
@@ -150,6 +152,8 @@ A save that cannot be verified and protected is not loaded into the normal editi
 
 UI controls mutate the working in-memory character representation. The opened baseline remains unchanged during the editing session. The durable workspace source snapshot likewise remains unchanged.
 
+Editor tabs follow **preserve-by-default write-back**: each tab records what every widget reports immediately after a character is loaded and, on Save Changes, writes back only the fields whose widget value differs. Values the widgets cannot represent (an unknown skill ID, a hairstyle or beard missing from the lookup tables, a fourth active food, floating-point precision beyond a spin box) therefore pass through untouched, and a no-op save produces a byte-identical file. Unknown enumerations are shown as explicit "Unknown (raw)" entries rather than replaced with defaults.
+
 This separation supports future semantic diffing and recovery without reconstructing the original state after the fact.
 
 ### Save Changes
@@ -157,18 +161,19 @@ This separation supports future semantic diffing and recovery without reconstruc
 1. Confirm the active source still matches the expected hash from open time.
 2. Collect changes from editor tabs.
 3. Repack player data.
-4. Serialize the expected root structure.
-5. Compile to a temporary `.fch` candidate in the active destination directory.
+4. Serialize the expected root structure in memory.
+5. Write a temporary `.fch` candidate inside the managed workspace, never in the Valheim save directory.
 6. Strictly verify and reparse the candidate.
 7. Copy the verified candidate into the managed workspace as the current working copy.
-8. Re-check that Valheim is not running.
-9. At the replacement boundary, re-check the active source hash.
-10. Back up the current active destination into the character workspace.
-11. Atomically replace the active destination.
-12. Update workspace metadata to the newly applied source hash and backup path.
-13. Refresh the player-facing health/status surface.
+8. Scan for Valheim again. Only a scan that proves Valheim is closed may continue; a running game or an **inconclusive process scan** (one where at least one process could not be identified) stops here, keeps the working copy, leaves the active file untouched, and tells the player to close Valheim and save again.
+9. Stage the working copy next to the destination so the final replace is atomic.
+10. At the replacement boundary, re-check the active source hash.
+11. Back up the current active destination into the character workspace.
+12. Atomically replace the active destination.
+13. Update workspace metadata to the newly applied source hash and backup path.
+14. Refresh the player-facing health/status surface.
 
-The active Valheim file is never the scratch space.
+The active Valheim file is never the scratch space, and nothing is written into its directory before the second process scan passes.
 
 ## External-change protection
 
@@ -187,12 +192,15 @@ The bundle includes:
 - Python application/runtime code;
 - `data/valheim_items.json`;
 - `assets/wulfpack-forge-banner.jpg`.
+- `assets/glyphs/items/` with 23 original inventory masters.
 
-The packaged smoke test verifies that critical generated and branding assets can be resolved from the PyInstaller runtime environment. Branding validation also enforces a README-scale quality floor for the canonical banner.
+The packaged smoke test verifies that critical generated, branding, and glyph assets can be resolved and decoded from the PyInstaller runtime environment. It checks objective runtime properties, not subjective art quality.
 
 ## Compatibility boundary
 
 Game-version compatibility is explicit state, not an assumption.
+
+The parser reads character-save versions 40 and newer exactly and refuses older layouts with a clear error. Writing is enabled for character-save versions 40 through 43 (each round-tripped byte-identical on real saves) whose player payload reports player-data version 29, inventory version 106, and skill version 2; any other combination is inspectable but read-only (`Compatibility unverified`). Both decoders reject a save that leaves bytes unconsumed, so a newer layout can never be silently truncated on save.
 
 A new Valheim version can affect:
 

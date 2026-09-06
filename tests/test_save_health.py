@@ -28,6 +28,24 @@ class SaveHealthTests(unittest.TestCase):
         self.assertIn("checksum and structure verified", report.detail.lower())
         self.assertIn("protected workspace snapshot", report.detail.lower())
 
+    def test_versions_40_to_43_are_writable_and_others_are_not(self):
+        self.assertEqual(SUPPORTED_CHARACTER_SAVE_VERSIONS, frozenset({40, 41, 42, 43}))
+
+        writable = build_save_health_report(valid=True, version=41, source="Local", modified_at=None)
+        self.assertEqual(writable.state, SAVE_STATE_VERIFIED)
+        self.assertTrue(writable.writable)
+
+        for version in (39, 44):
+            report = build_save_health_report(valid=True, version=version, source="Local", modified_at=None)
+            self.assertEqual(report.state, SAVE_STATE_COMPATIBILITY_UNVERIFIED, version)
+            self.assertFalse(report.writable, version)
+
+        gated = build_save_health_report(
+            valid=True, version=41, source="Local", modified_at=None, payload_supported=False
+        )
+        self.assertEqual(gated.state, SAVE_STATE_COMPATIBILITY_UNVERIFIED)
+        self.assertFalse(gated.writable)
+
     def test_unknown_save_version_is_inspectable_but_not_writable(self):
         report = build_save_health_report(
             valid=True,
@@ -41,6 +59,20 @@ class SaveHealthTests(unittest.TestCase):
         self.assertFalse(report.writable)
         self.assertIn("save version 44", report.detail.lower())
         self.assertIn("disabled", report.detail.lower())
+
+    def test_unsupported_payload_versions_are_inspectable_but_not_writable(self):
+        report = build_save_health_report(
+            valid=True,
+            version=43,
+            source="Local",
+            modified_at=1_700_000_000,
+            payload_supported=False,
+        )
+
+        self.assertEqual(report.state, SAVE_STATE_COMPATIBILITY_UNVERIFIED)
+        self.assertTrue(report.verification_ok)
+        self.assertFalse(report.writable)
+        self.assertIn("player data", report.detail.lower())
 
     def test_failed_verification_needs_attention_and_is_not_writable(self):
         report = build_save_health_report(

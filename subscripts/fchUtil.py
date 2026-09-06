@@ -1,52 +1,80 @@
-import sys
-import os
-import json
-import struct
-import io
-import hashlib
+"""Outer Valheim ``.fch`` container codec.
 
-# binary read and write utils
+``parse_save`` and ``serialize_save`` are exact inverses for every supported
+save: ``serialize_save(parse_save(data)) == data``. Strings are decoded with
+``surrogateescape`` so bytes that are not valid UTF-8 survive a round trip, and
+the reader refuses to return a save that still has unconsumed bytes.
+"""
+import hashlib
+import io
+import json
+import logging
+import os
+import struct
+import sys
+
+from subscripts.saveErrors import SaveFormatError
+
+logger = logging.getLogger(__name__)
+
+# Real saves from version 40 onward round-trip byte-identical through this codec.
+# Older layouts differ in fields this module does not gate on, so they are refused.
+MIN_CHARACTER_SAVE_VERSION = 40
+CURRENT_CHARACTER_SAVE_VERSION = 43
+STRING_ERRORS = "surrogateescape"
+
 
 class BinaryReader:
     def __init__(self, data: bytes):
         self.stream = io.BytesIO(data)
+        self._length = len(data)
 
     def read_bytes(self, n: int) -> bytes:
-        return self.stream.read(n)
+        if n < 0:
+            raise SaveFormatError(f"Negative length {n} in save data.")
+        data = self.stream.read(n)
+        if len(data) != n:
+            raise SaveFormatError(f"Unexpected end of save data: wanted {n} bytes, got {len(data)}.")
+        return data
 
     def read_int32(self) -> int:
-        return struct.unpack("<i", self.stream.read(4))[0]
+        return struct.unpack("<i", self.read_bytes(4))[0]
 
     def read_float(self) -> float:
-        return struct.unpack("<f", self.stream.read(4))[0]
+        return struct.unpack("<f", self.read_bytes(4))[0]
 
     def read_bool(self) -> bool:
-        return struct.unpack("?", self.stream.read(1))[0]
+        return self.read_bytes(1)[0] != 0
 
     def read_long(self) -> int:
-        return struct.unpack("<q", self.stream.read(8))[0]
+        return struct.unpack("<q", self.read_bytes(8))[0]
 
     def read_vector3(self) -> list:
-        return list(struct.unpack("<fff", self.stream.read(12)))
+        return list(struct.unpack("<fff", self.read_bytes(12)))
 
     def read_7bit_encoded_int(self) -> int:
         value = 0
-        shift = 0
-        while True:
-            byte = self.stream.read(1)[0]
+        for shift in range(0, 35, 7):
+            byte = self.read_bytes(1)[0]
             value |= (byte & 0x7F) << shift
             if (byte & 0x80) == 0:
-                break
-            shift += 7
-        return value
+                return value
+        raise SaveFormatError("Malformed 7-bit encoded integer in save data.")
 
     def read_string(self) -> str:
         length = self.read_7bit_encoded_int()
-        return self.stream.read(length).decode("utf-8")
+        return self.read_bytes(length).decode("utf-8", errors=STRING_ERRORS)
 
     def read_byte_array(self) -> bytes:
-        length = self.read_int32()
-        return self.stream.read(length)
+        return self.read_bytes(self.read_int32())
+
+    def read_float_dict(self) -> dict:
+        return {self.read_string(): self.read_float() for _ in range(self.read_int32())}
+
+    def require_exhausted(self, context: str) -> None:
+        remaining = self._length - self.stream.tell()
+        if remaining:
+            raise SaveFormatError(f"{remaining} unconsumed bytes after the {context}.")
 
 
 class BinaryWriter:
@@ -66,7 +94,7 @@ class BinaryWriter:
         self.stream.write(struct.pack("<f", val))
 
     def write_bool(self, val: bool):
-        self.stream.write(struct.pack("?", val))
+        self.stream.write(b"\x01" if val else b"\x00")
 
     def write_long(self, val: int):
         self.stream.write(struct.pack("<q", val))
@@ -81,7 +109,7 @@ class BinaryWriter:
         self.stream.write(bytes([value]))
 
     def write_string(self, val: str):
-        encoded = val.encode("utf-8")
+        encoded = val.encode("utf-8", errors=STRING_ERRORS)
         self.write_7bit_encoded_int(len(encoded))
         self.stream.write(encoded)
 
@@ -89,277 +117,172 @@ class BinaryWriter:
         self.write_int32(len(data))
         self.stream.write(data)
 
-# unpack .fch to .json
+    def write_float_dict(self, values: dict):
+        self.write_int32(len(values))
+        for key, value in values.items():
+            self.write_string(key)
+            self.write_float(value)
 
-def decompile_fch(fch_path: str) -> dict:
-    print(f"Reading binary save: {fch_path}")
 
-    with open(fch_path, "rb") as f:
-        file_bytes = f.read()
+# ---------------------------------------------------------------- parsing
 
-    file_reader = BinaryReader(file_bytes)
+def _read_world(pkg: BinaryReader, version: int) -> dict:
+    world = {"world_id": pkg.read_long()}
+    world["have_custom_spawn"] = pkg.read_bool()
+    world["spawn_point"] = pkg.read_vector3()
+    world["have_logout_point"] = pkg.read_bool()
+    world["logout_point"] = pkg.read_vector3()
+    if version >= 30:
+        world["have_death_point"] = pkg.read_bool()
+        world["death_point"] = pkg.read_vector3()
+    world["home_point"] = pkg.read_vector3()
+    world["map_data_hex"] = pkg.read_byte_array().hex() if pkg.read_bool() else None
+    return world
 
-    zpackage_len = file_reader.read_int32()
-    zpackage_bytes = file_reader.read_bytes(zpackage_len)
 
-    # checksum validation
-    hash_len = file_reader.read_int32()
-    stored_hash = file_reader.read_bytes(hash_len)
-
-    calculated_hash = hashlib.sha512(zpackage_bytes).digest()
-
-    if calculated_hash != stored_hash:
-        print(
-            "Warning: File SHA-512 checksum mismatch. "
-            "Save may be corrupted, but we'll try to parse it anyway."
-        )
-
-    pkg = BinaryReader(zpackage_bytes)
-
-    save_data = {}
-
+def _read_zpackage(pkg: BinaryReader) -> dict:
     version = pkg.read_int32()
-    save_data["version"] = version
-
-    if version != 43:
-        print(
-            f"Warning: This script is configured for Version 43. "
-            f"Attempting to parse Version {version} anyway..."
+    if version < MIN_CHARACTER_SAVE_VERSION:
+        raise SaveFormatError(
+            f"Character save version {version} is older than the minimum {MIN_CHARACTER_SAVE_VERSION} "
+            "this build can read exactly."
         )
-
-    # 1. stats
-    stat_count = pkg.read_int32()
-    save_data["stats"] = [
-        pkg.read_float()
-        for _ in range(stat_count)
-    ]
-
-    # 2. first spawn
+    save_data = {"version": version}
+    save_data["stats"] = [pkg.read_float() for _ in range(pkg.read_int32())]
     save_data["first_spawn"] = pkg.read_bool()
-
-    # 3. world data
-    world_count = pkg.read_int32()
-
-    worlds = []
-
-    for _ in range(world_count):
-
-        world = {}
-
-        world["world_id"] = pkg.read_long()
-
-        world["have_custom_spawn"] = pkg.read_bool()
-        world["spawn_point"] = pkg.read_vector3()
-
-        world["have_logout_point"] = pkg.read_bool()
-        world["logout_point"] = pkg.read_vector3()
-
-        if version >= 30:
-            world["have_death_point"] = pkg.read_bool()
-            world["death_point"] = pkg.read_vector3()
-
-        world["home_point"] = pkg.read_vector3()
-
-        has_map_data = pkg.read_bool()
-
-        world["map_data_hex"] = (
-            pkg.read_byte_array().hex()
-            if has_map_data
-            else None
-        )
-
-        worlds.append(world)
-
-    save_data["worlds"] = worlds
-
-    # 4. character info
+    save_data["worlds"] = [_read_world(pkg, version) for _ in range(pkg.read_int32())]
     save_data["character_name"] = pkg.read_string()
     save_data["player_id"] = pkg.read_long()
     save_data["start_seed"] = pkg.read_string()
-
-    # 5. metadata
     save_data["used_cheats"] = pkg.read_bool()
     save_data["date_created_unix"] = pkg.read_long()
-
-    # known worlds
-    count = pkg.read_int32()
-
-    save_data["known_worlds"] = {
-        pkg.read_string(): pkg.read_float()
-        for _ in range(count)
-    }
-
-    # known world keys
-    count = pkg.read_int32()
-
-    save_data["known_world_keys"] = {
-        pkg.read_string(): pkg.read_float()
-        for _ in range(count)
-    }
-
-    # known commands
-    count = pkg.read_int32()
-
-    save_data["known_commands"] = {
-        pkg.read_string(): pkg.read_float()
-        for _ in range(count)
-    }
-
-    # v42+
+    save_data["known_worlds"] = pkg.read_float_dict()
+    save_data["known_world_keys"] = pkg.read_float_dict()
+    save_data["known_commands"] = pkg.read_float_dict()
     if version >= 42:
-
-        count = pkg.read_int32()
-
-        save_data["enemy_stats"] = {
-            pkg.read_string(): pkg.read_float()
-            for _ in range(count)
-        }
-
-        count = pkg.read_int32()
-
-        save_data["item_pickup_stats"] = {
-            pkg.read_string(): pkg.read_float()
-            for _ in range(count)
-        }
-
-        count = pkg.read_int32()
-
-        save_data["item_craft_stats"] = {
-            pkg.read_string(): pkg.read_float()
-            for _ in range(count)
-        }
-
-    # 6. nested player data
-    has_player_data = pkg.read_bool()
-
-    save_data["player_data_hex"] = (
-        pkg.read_byte_array().hex()
-        if has_player_data
-        else None
-    )
-
-    print("Successfully unpacked save.")
-
+        save_data["enemy_stats"] = pkg.read_float_dict()
+        save_data["item_pickup_stats"] = pkg.read_float_dict()
+        save_data["item_craft_stats"] = pkg.read_float_dict()
+    save_data["player_data_hex"] = pkg.read_byte_array().hex() if pkg.read_bool() else None
+    pkg.require_exhausted("character container")
     return save_data
-# .json to .fch
 
-def compile_fch(json_path: str, fch_path: str):
-    print(f"Reading JSON file: {json_path}")
-    with open(json_path, "r", encoding="utf-8") as f:
-        save_data = json.load(f)
 
+def parse_save(data: bytes) -> dict:
+    """Parse a complete ``.fch`` file image into the save dictionary.
+
+    The SHA-512 trailer is compared and logged here; strict rejection of a bad
+    checksum belongs to ``subscripts.saveSafety`` which verifies before parsing.
+    """
+    file_reader = BinaryReader(data)
+    zpackage_bytes = file_reader.read_byte_array()
+    stored_hash = file_reader.read_byte_array()
+    file_reader.require_exhausted("save envelope")
+    if hashlib.sha512(zpackage_bytes).digest() != stored_hash:
+        logger.warning("SHA-512 checksum mismatch; parsing the save anyway.")
+    return _read_zpackage(BinaryReader(zpackage_bytes))
+
+
+def decompile_fch(fch_path: str) -> dict:
+    logger.info("Reading binary save: %s", fch_path)
+    with open(fch_path, "rb") as f:
+        return parse_save(f.read())
+
+
+# ---------------------------------------------------------- serialization
+
+def _write_world(pkg: BinaryWriter, world: dict, version: int) -> None:
+    pkg.write_long(world["world_id"])
+    pkg.write_bool(world["have_custom_spawn"])
+    pkg.write_vector3(world["spawn_point"])
+    pkg.write_bool(world["have_logout_point"])
+    pkg.write_vector3(world["logout_point"])
+    if version >= 30:
+        pkg.write_bool(world["have_death_point"])
+        pkg.write_vector3(world["death_point"])
+    pkg.write_vector3(world["home_point"])
+    map_data_hex = world["map_data_hex"]
+    pkg.write_bool(map_data_hex is not None)
+    if map_data_hex is not None:
+        pkg.write_byte_array(bytes.fromhex(map_data_hex))
+
+
+def _write_zpackage(save_data: dict) -> bytes:
     pkg = BinaryWriter()
     version = save_data["version"]
     pkg.write_int32(version)
-
-    # 1. stats and skills
     pkg.write_int32(len(save_data["stats"]))
     for stat in save_data["stats"]:
         pkg.write_float(stat)
-
-    # 2. first spawn boolean
     pkg.write_bool(save_data["first_spawn"])
-
-    # 3. world data
     pkg.write_int32(len(save_data["worlds"]))
     for world in save_data["worlds"]:
-        pkg.write_long(world["world_id"])
-        pkg.write_bool(world["have_custom_spawn"])
-        pkg.write_vector3(world["spawn_point"])
-        pkg.write_bool(world["have_logout_point"])
-        pkg.write_vector3(world["logout_point"])
-
-        if version >= 30:
-            pkg.write_bool(world["have_death_point"])
-            pkg.write_vector3(world["death_point"])
-
-        pkg.write_vector3(world["home_point"])
-        has_map_data = world["map_data_hex"] is not None
-        pkg.write_bool(has_map_data)
-        if has_map_data:
-            pkg.write_byte_array(bytes.fromhex(world["map_data_hex"]))
-
-    # 4. char info
+        _write_world(pkg, world, version)
     pkg.write_string(save_data["character_name"])
     pkg.write_long(save_data["player_id"])
     pkg.write_string(save_data["start_seed"])
-
-    # 5. metadata (v38+)
     pkg.write_bool(save_data["used_cheats"])
     pkg.write_long(save_data["date_created_unix"])
-
-    # known worlds
-    pkg.write_int32(len(save_data["known_worlds"]))
-    for k, v in save_data["known_worlds"].items():
-        pkg.write_string(k)
-        pkg.write_float(v)
-
-    # known world keys
-    pkg.write_int32(len(save_data["known_world_keys"]))
-    for k, v in save_data["known_world_keys"].items():
-        pkg.write_string(k)
-        pkg.write_float(v)
-
-    # known console cmds
-    pkg.write_int32(len(save_data["known_commands"]))
-    for k, v in save_data["known_commands"].items():
-        pkg.write_string(k)
-        pkg.write_float(v)
-
-    # v42+ stats dictionaries
+    pkg.write_float_dict(save_data["known_worlds"])
+    pkg.write_float_dict(save_data["known_world_keys"])
+    pkg.write_float_dict(save_data["known_commands"])
     if version >= 42:
-        pkg.write_int32(len(save_data["enemy_stats"]))
-        for k, v in save_data["enemy_stats"].items():
-            pkg.write_string(k)
-            pkg.write_float(v)
+        pkg.write_float_dict(save_data["enemy_stats"])
+        pkg.write_float_dict(save_data["item_pickup_stats"])
+        pkg.write_float_dict(save_data["item_craft_stats"])
+    player_data_hex = save_data["player_data_hex"]
+    pkg.write_bool(player_data_hex is not None)
+    if player_data_hex is not None:
+        pkg.write_byte_array(bytes.fromhex(player_data_hex))
+    return pkg.get_bytes()
 
-        pkg.write_int32(len(save_data["item_pickup_stats"]))
-        for k, v in save_data["item_pickup_stats"].items():
-            pkg.write_string(k)
-            pkg.write_float(v)
 
-        pkg.write_int32(len(save_data["item_craft_stats"]))
-        for k, v in save_data["item_craft_stats"].items():
-            pkg.write_string(k)
-            pkg.write_float(v)
-
-    # 6. player data
-    has_player_data = save_data["player_data_hex"] is not None
-    pkg.write_bool(has_player_data)
-    if has_player_data:
-        pkg.write_byte_array(bytes.fromhex(save_data["player_data_hex"]))
-
-    # write to .fch with checksum
-    zpackage_bytes = pkg.get_bytes()
-    calculated_hash = hashlib.sha512(zpackage_bytes).digest()
-
+def serialize_save(save_data: dict) -> bytes:
+    """Serialize the save dictionary into a complete ``.fch`` file image with its SHA-512 trailer."""
+    zpackage_bytes = _write_zpackage(save_data)
     file_writer = BinaryWriter()
-    file_writer.write_int32(len(zpackage_bytes))
-    file_writer.write_bytes(zpackage_bytes)
-    file_writer.write_int32(len(calculated_hash))
-    file_writer.write_bytes(calculated_hash)
+    file_writer.write_byte_array(zpackage_bytes)
+    file_writer.write_byte_array(hashlib.sha512(zpackage_bytes).digest())
+    return file_writer.get_bytes()
 
+
+def write_fch_bytes(data: bytes, fch_path: str) -> None:
+    """Write a file image and flush it to stable storage before returning."""
     with open(fch_path, "wb") as f:
-        f.write(file_writer.get_bytes())
-    print(f"Successfully compiled and hashed! File created at: {fch_path}")
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
 
-# interface for cli usage
+
+def compile_fch(json_path: str, fch_path: str):
+    logger.info("Reading JSON file: %s", json_path)
+    with open(json_path, "r", encoding="utf-8") as f:
+        save_data = json.load(f)
+    write_fch_bytes(serialize_save(save_data), fch_path)
+    logger.info("Compiled and hashed save written to %s", fch_path)
+
+
+# ------------------------------------------------------------------- CLI
+
+def _main(argv: list) -> int:
+    if len(argv) < 4:
+        print(f"Valheim Save File Utility v{CURRENT_CHARACTER_SAVE_VERSION}")
+        print("Usage:")
+        print("  Decompile: python fchUtil.py unpack <character.fch> <output.json>")
+        print("  Compile:   python fchUtil.py pack <input.json> <output.fch>")
+        return 1
+    mode, source_file, target_file = argv[1].lower(), argv[2], argv[3]
+    if mode == "unpack":
+        with open(target_file, "w", encoding="utf-8") as f:
+            json.dump(decompile_fch(source_file), f, indent=2, ensure_ascii=True)
+        return 0
+    if mode == "pack":
+        compile_fch(source_file, target_file)
+        return 0
+    print(f"Error: Unknown mode '{mode}'. Use 'unpack' or 'pack'.")
+    return 1
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Valheim Save File Utility v43")
-        print("Usage:")
-        print("  Decompile: python valheim_editor.py unpack <character.fch> <output.json>")
-        print("  Compile:   python valheim_editor.py pack <input.json> <output.fch>")
-        sys.exit(1)
-
-    mode = sys.argv[1].lower()
-    source_file = sys.argv[2]
-    target_file = sys.argv[3]
-
-    if mode == "unpack":
-        decompile_fch(source_file, target_file)
-    elif mode == "pack":
-        compile_fch(source_file, target_file)
-    else:
-        print(f"Error: Unknown mode '{mode}'. Use 'unpack' or 'pack'.")
+    logging.basicConfig(level=logging.INFO)
+    sys.exit(_main(sys.argv))

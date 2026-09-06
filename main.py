@@ -2,6 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from ui.branding import app_icon
 from ui.mainWindow import MainWindow
 
 
@@ -17,12 +18,19 @@ def _verify_brand_bundle() -> bool:
     return banner_is_usable()
 
 
+def _verify_glyph_bundle() -> bool:
+    from ui.glyphs import glyph_bundle_is_usable
+
+    return glyph_bundle_is_usable()
+
+
 def main():
     app = QApplication(sys.argv)
+    app.setWindowIcon(app_icon())
     window = MainWindow()
 
     if "--smoke-test" in sys.argv:
-        if not (_verify_catalog_bundle() and _verify_brand_bundle()):
+        if not (_verify_catalog_bundle() and _verify_brand_bundle() and _verify_glyph_bundle()):
             window.close()
             return 2
         window.show()

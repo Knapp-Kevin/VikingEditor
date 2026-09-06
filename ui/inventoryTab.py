@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt
 
 from ui.inventorySlot import InventorySlot
 from ui.itemEditDialog import ItemEditDialog
+from ui.itemPickerDialog import ItemPickerDialog
 
 class InventoryTab(QWidget):
     GRID_WIDTH = 8
@@ -101,8 +102,12 @@ class InventoryTab(QWidget):
             slot.clear_item()
 
     def add_item_to_slot(self, slot: InventorySlot):
+        picker = ItemPickerDialog(self)
+        if picker.exec() != QDialog.Accepted or not picker.selected_prefab:
+            return
+
         new_item = {
-            "prefab": "",
+            "prefab": picker.selected_prefab,
             "stack": 1,
             "durability": 100.0,
             "grid_x": slot.grid_x,
@@ -126,5 +131,4 @@ class InventoryTab(QWidget):
             slot.set_item(new_item)
 
     def save_changes(self):
-        # what?
-        pass
+        """Nothing to collect: every edit mutates the item dictionaries inside ``player_data`` in place."""
