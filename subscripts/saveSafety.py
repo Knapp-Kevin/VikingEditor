@@ -13,6 +13,14 @@ class SaveVerificationError(Exception):
     """Raised when a compiled Valheim save fails structural verification."""
 
 
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _next_backup_path(
     destination: str,
     timestamp: Optional[datetime] = None,
@@ -111,12 +119,24 @@ def replace_verified_save(
     destination: str,
     expected_root: Optional[dict] = None,
     backup_directory: Optional[str] = None,
+    expected_destination_sha256: Optional[str] = None,
 ) -> Optional[str]:
-    """Verify a candidate, back up any existing save, then atomically replace it."""
+    """Verify a candidate, guard the destination, back it up, then atomically replace it."""
     verify_fch_round_trip(candidate_path, expected_root)
 
     destination_path = Path(destination)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if expected_destination_sha256 is not None:
+        if not destination_path.is_file():
+            raise SaveVerificationError(
+                "The active character file disappeared after it was opened. Reload the character before applying changes."
+            )
+        current_sha256 = _sha256_file(destination)
+        if current_sha256 != expected_destination_sha256:
+            raise SaveVerificationError(
+                "The active character file changed after it was opened. Reload it before applying changes so newer Steam, Valheim, or external edits are not overwritten."
+            )
 
     backup_path = create_timestamped_backup(
         destination,
