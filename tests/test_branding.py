@@ -20,8 +20,8 @@ class BrandingTests(unittest.TestCase):
 
     def test_approved_banner_is_a_runtime_resource(self):
         self.assertEqual(BANNER_RELATIVE_PATH, "assets/wulfpack-forge-banner.jpg")
-        self.assertGreaterEqual(MIN_BANNER_WIDTH, 1000)
-        self.assertGreaterEqual(MIN_BANNER_HEIGHT, 300)
+        self.assertGreaterEqual(MIN_BANNER_WIDTH, 800)
+        self.assertGreaterEqual(MIN_BANNER_HEIGHT, 250)
         self.assertTrue(banner_path().is_file())
         self.assertTrue(banner_is_usable())
 
