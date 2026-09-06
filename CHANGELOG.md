@@ -14,6 +14,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - `--smoke-test` no longer blocks on the "Valheim Running" dialog when the game happens to be open on the machine running the check.
 
 ### Added
+- Inventory tab refresh: larger illustrated tiles with stack and quality badges, drag-and-drop to move an item to an empty slot or swap two items (only their grid positions change), and an Equipped panel that shows what occupies head, chest, legs, cape, utility, trinket, and each hand. The item picker gets larger tiles, item counts on every tree node, a breadcrumb for the current branch, and the material tier under each name.
 - The complete original appearance-art bundle: 38 hairstyle thumbnails and 27 beard thumbnails, plus 11 new inventory glyph masters for bombs, tools, keys, eggs, miscellaneous items, tankards, fishing gear, fist weapons, and scythes.
 - The item picker now branches by category, then type, then material (for example Weapons, Swords, Bronze), and separates armour from Hildir's clothing and hats, accessories (belts and trinkets), and creature-only gear. Tooltips show each item's role and equipment slot.
 - Equipping an item now follows the game's rule: one item per slot (head, chest, legs, cape, utility, trinket) and hands exclusive between two-handed weapons, shields, and one-handed weapons. Anything that conflicts is unequipped and named in a status line. Saves that already contain conflicting flags are left untouched until you edit one of the items.

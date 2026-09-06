@@ -18,11 +18,12 @@ from PySide6.QtWidgets import (
 )
 
 from data.equipment import role_for, slot_for
-from data.item_groups import GROUPS, items_under, navigation_tree, pickable_items
+from data.item_groups import GROUPS, items_under, material_for, navigation_tree, pickable_items
 from ui.glyphs import item_icon
 
 ADVANCED = "Advanced"
-ICON_SIZE = 64
+ICON_SIZE = 96
+CELL = QSize(150, 150)
 NODE_ROLE = Qt.UserRole
 
 
@@ -45,6 +46,9 @@ class ItemPickerDialog(QDialog):
         layout.addWidget(self.categories)
 
         right = QVBoxLayout()
+        self.breadcrumb = QLabel(GROUPS[0])
+        self.breadcrumb.setStyleSheet("font-weight: 600; color: #8ad7c1;")
+        right.addWidget(self.breadcrumb)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search all items by name or prefab")
         right.addWidget(self.search)
@@ -53,7 +57,7 @@ class ItemPickerDialog(QDialog):
         self.grid = QListWidget()
         self.grid.setViewMode(QListWidget.IconMode)
         self.grid.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
-        self.grid.setGridSize(QSize(120, 104))
+        self.grid.setGridSize(CELL)
         self.grid.setResizeMode(QListWidget.Adjust)
         self.grid.setWrapping(True)
         self.grid.setUniformItemSizes(True)
@@ -86,13 +90,13 @@ class ItemPickerDialog(QDialog):
 
     def _build_tree(self) -> None:
         for group, branches in navigation_tree():
-            top = QTreeWidgetItem([group])
+            top = QTreeWidgetItem([f"{group} ({len(items_under(group))})"])
             top.setData(0, NODE_ROLE, (group, None, None))
             for subgroup, materials in branches:
-                child = QTreeWidgetItem([subgroup])
+                child = QTreeWidgetItem([f"{subgroup} ({len(items_under(group, subgroup))})"])
                 child.setData(0, NODE_ROLE, (group, subgroup, None))
                 for material in materials:
-                    leaf = QTreeWidgetItem([material])
+                    leaf = QTreeWidgetItem([f"{material} ({len(items_under(group, subgroup, material))})"])
                     leaf.setData(0, NODE_ROLE, (group, subgroup, material))
                     child.addChild(leaf)
                 top.addChild(child)
@@ -104,7 +108,7 @@ class ItemPickerDialog(QDialog):
     def select_group(self, name: str) -> None:
         for index in range(self.categories.topLevelItemCount()):
             top = self.categories.topLevelItem(index)
-            if top.text(0) == name:
+            if top.data(0, NODE_ROLE)[0] == name:
                 self.categories.setCurrentItem(top)
                 return
 
@@ -117,6 +121,7 @@ class ItemPickerDialog(QDialog):
             self.raw_input.setFocus()
             return
         self._current_node = node
+        self.breadcrumb.setText(" › ".join(part for part in node if part))
         self.pages.setCurrentIndex(0)
         if self.search.text().strip():
             self._apply_search(self.search.text())
@@ -136,10 +141,12 @@ class ItemPickerDialog(QDialog):
     def _fill(self, items) -> None:
         self.grid.clear()
         for item in items:
-            row = QListWidgetItem(item_icon(item, ICON_SIZE), item.display_name)
+            material = material_for(item)
+            label = f"{item.display_name}\n{material}" if material else item.display_name
+            row = QListWidgetItem(item_icon(item, ICON_SIZE), label)
             row.setData(Qt.UserRole, item.prefab)
             row.setToolTip(_describe(item))
-            row.setSizeHint(QSize(112, 100))
+            row.setSizeHint(QSize(140, 146))
             self.grid.addItem(row)
 
     def accept(self) -> None:
