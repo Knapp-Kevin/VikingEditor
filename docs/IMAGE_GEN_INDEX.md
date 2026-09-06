@@ -3,7 +3,7 @@
 ## Implementation status
 
 - **Complete:** all 23 inventory glyph masters are approved, bundled under `assets/glyphs/items/`, mapped in `data/glyphs.py`, and rendered with material tinting in the Inventory grid and item editor.
-- **Backlog:** 38 hairstyle thumbnails and 27 beard thumbnails. The current Appearance tab remains text-and-color based until those original assets and their UI integration receive a separate review.
+- **Wired, art pending:** 38 hairstyle and 27 beard thumbnails. The Appearance tab and the New Character dialog already show a thumbnail next to any style whose PNG exists under `assets/glyphs/hair/` or `assets/glyphs/beard/` (named by catalog id, e.g. `Hair7.png`, `BeardNone.png`); entries without art stay text-only.
 
 Lists every original image the bundled glyph set needs so the batch can be generated in one pass. Nothing here derives from Iron Gate art; each glyph depicts the concept, in one consistent house style, and is keyed on data the item catalog already carries (`item_type`) plus a material tint inferred from the prefab name. See `docs/BRAND_GUIDE.md` for the product palette this extends.
 
@@ -84,7 +84,7 @@ One original schematic head-and-shoulders silhouette per entry in `data/hairs.py
 
 ## Beard thumbnails (27)
 
-One silhouette per entry in `data/beards.py` (22 named styles plus "No beard"), and four placeholders for `Beard17`-`Beard20`, which real saves use but the table does not yet name (BACKLOG OQ1).
+One silhouette per catalog beard: Majestic, Twin Braids, Short, Straight, Single Braid, Loose Braid, Split Shave, Thick, Trobadour, Top Braid, Facewarmer, Royal, Triplets, Split Braid, Mini Braid, Stonedweller, Neat, Jarl Braids, Bushy, Spiky, Tidy, Mustache, Crumb Catcher, Waxed, Trimmed, Handlebar (Beard1-Beard26 in that order), plus "No Beard" (BeardNone).
 
 ## Output manifest
 
@@ -92,8 +92,8 @@ Approved files move to `assets/glyphs/` as original bundled art. Work in progres
 
 ```
 assets/glyphs/items/G01_sword.png ... G23_torch.png   (masters, 512x512, untinted grey)
-assets/glyphs/hair/Hair1.png ... Hair37.png, nohair.png
-assets/glyphs/beard/Beard1.png ... Beard26.png, nobeard.png
+assets/glyphs/hair/Hair1.png ... Hair37.png, HairNone.png
+assets/glyphs/beard/Beard1.png ... Beard26.png, BeardNone.png
 ```
 
-The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time. The inventory masters are complete; the hair and beard paths above are reserved for the remaining appearance-art tranche.
+The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time. The inventory masters are complete; the hair and beard paths above are picked up automatically once the PNGs exist.

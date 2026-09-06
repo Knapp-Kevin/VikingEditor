@@ -56,6 +56,41 @@ class SkillsTabPreserveTests(unittest.TestCase):
         self.assertEqual(second, baseline)
 
 
+class SkillsTabAddTests(unittest.TestCase):
+    def _addable(self, tab):
+        return [tab.add_skill_combo.itemText(i) for i in range(tab.add_skill_combo.count())]
+
+    def test_missing_vanilla_skills_can_be_added_and_raised(self):
+        data = loaded_player_data()
+        baseline = copy.deepcopy(data)
+        tab = SkillsTab()
+        tab.load_data(data)
+        addable = self._addable(tab)
+        self.assertIn("Axes", addable)
+        self.assertNotIn("Swords", addable)
+        self.assertNotIn("None", addable)
+
+        tab.add_skill_combo.setCurrentIndex(addable.index("Axes"))
+        tab.add_skill()
+        tab.save_changes()
+        self.assertEqual(data["skills"][:2], baseline["skills"])
+        self.assertEqual(data["skills"][2], {"id": 7, "level": 0.0, "xp": 0.0})
+        self.assertNotIn("Axes", self._addable(tab))
+
+        tab.table.cellWidget(2, 1).setValue(25.0)
+        tab.save_changes()
+        self.assertEqual(data["skills"][2]["level"], 25.0)
+
+    def test_empty_skill_list_offers_every_vanilla_skill(self):
+        data = loaded_player_data()
+        data["skills"] = []
+        tab = SkillsTab()
+        tab.load_data(data)
+        from data.skills import VALHEIM_SKILLS
+        self.assertEqual(len(self._addable(tab)), len(VALHEIM_SKILLS) - 1)
+        self.assertTrue(tab.btn_add_skill.isEnabled())
+
+
 class AppearanceTabPreserveTests(unittest.TestCase):
     def test_noop_preserves_unknown_hair_and_model(self):
         data = loaded_player_data()
@@ -78,6 +113,27 @@ class AppearanceTabPreserveTests(unittest.TestCase):
         labels = [tab.hair_combo.itemText(i) for i in range(tab.hair_combo.count())]
         self.assertNotIn("Unknown (HairModded99)", labels)
         self.assertEqual(tab.hair_combo.currentData(), "Hair1")
+
+    def test_empty_hair_shows_none_entry_and_is_preserved(self):
+        data = loaded_player_data()
+        data["hair"] = ""
+        data["beard"] = ""
+        baseline = copy.deepcopy(data)
+        tab = AppearanceTab()
+        tab.load_data(data)
+        self.assertEqual(tab.hair_combo.currentData(), "HairNone")
+        self.assertEqual(tab.beard_combo.currentData(), "BeardNone")
+        tab.save_changes()
+        self.assertEqual(data, baseline)
+
+    def test_choosing_none_writes_the_catalog_none_prefab(self):
+        data = loaded_player_data()
+        data["hair"] = "Hair7"
+        tab = AppearanceTab()
+        tab.load_data(data)
+        tab.hair_combo.setCurrentIndex(tab.hair_combo.findData("HairNone"))
+        tab.save_changes()
+        self.assertEqual(data["hair"], "HairNone")
 
     def test_picking_a_colour_writes_only_skin_color(self):
         data = loaded_player_data()

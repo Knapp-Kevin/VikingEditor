@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import (
+    QComboBox,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -31,6 +32,12 @@ class SkillsTab(QWidget):
         toolbar.addWidget(self.btn_max_all)
         toolbar.addWidget(self.btn_set_all0)
         toolbar.addStretch()
+        self.add_skill_combo = QComboBox()
+        self.add_skill_combo.setMinimumWidth(180)
+        self.btn_add_skill = QPushButton("Add Skill")
+        self.btn_add_skill.setEnabled(False)
+        toolbar.addWidget(self.add_skill_combo)
+        toolbar.addWidget(self.btn_add_skill)
         layout.addLayout(toolbar)
 
         self.table = QTableWidget()
@@ -40,6 +47,7 @@ class SkillsTab(QWidget):
         layout.addWidget(self.table)
         self.btn_max_all.clicked.connect(self.maximize_all_skills)
         self.btn_set_all0.clicked.connect(self.set_all_skills0)
+        self.btn_add_skill.clicked.connect(self.add_skill)
 
     def load_data(self, player_data):
         self.tracker.clear()
@@ -47,6 +55,30 @@ class SkillsTab(QWidget):
         self.table.setRowCount(0)
         for index, skill in enumerate(player_data.get("skills", [])):
             self.add_skill_row(index, skill)
+        self._refresh_addable_skills()
+
+    def _refresh_addable_skills(self):
+        """Offer every vanilla skill the character does not have yet."""
+        self.add_skill_combo.clear()
+        present = {skill.get("id") for skill in (self.player_data or {}).get("skills", [])}
+        missing = sorted(
+            ((name, skill_id) for skill_id, name in VALHEIM_SKILLS.items() if skill_id and skill_id not in present),
+            key=lambda pair: pair[0].lower(),
+        )
+        for name, skill_id in missing:
+            self.add_skill_combo.addItem(name, skill_id)
+        self.btn_add_skill.setEnabled(bool(self.player_data) and bool(missing))
+
+    def add_skill(self):
+        """Append a missing skill at level 0 so the player can raise it."""
+        skill_id = self.add_skill_combo.currentData()
+        if not self.player_data or skill_id is None:
+            return
+        skills = self.player_data.setdefault("skills", [])
+        skill = {"id": int(skill_id), "level": 0.0, "xp": 0.0}
+        skills.append(skill)
+        self.add_skill_row(len(skills) - 1, skill)
+        self._refresh_addable_skills()
 
     def add_skill_row(self, index, skill_data):
         row = self.table.rowCount()

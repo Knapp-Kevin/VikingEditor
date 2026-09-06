@@ -135,6 +135,10 @@ Provides behavioral evidence for save safety, managed workspaces, external-chang
 
 ## Save lifecycle
 
+### Create
+
+`subscripts/newCharacter.py` synthesises a new character from defaults calibrated against characters created in-game (no embedded game binary): the outer container and player payload are built as dictionaries, serialized through the same codec that round-trips real saves, written to a temporary file in the chosen characters folder, strictly verified, and moved into place only if no file with that name exists. The new file then enters the normal Load path.
+
 ### Load
 
 1. Discover or manually select a local `.fch` file.

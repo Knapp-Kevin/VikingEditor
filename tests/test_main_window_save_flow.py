@@ -110,6 +110,36 @@ class MainWindowSaveFlowTests(unittest.TestCase):
         self.window.save_save_file()
         self.assertEqual(verify_fch_round_trip(str(self.source))["character_name"], "Renamed")
 
+    def test_new_character_button_creates_and_opens_a_verified_file(self):
+        from subscripts.newCharacter import NewCharacterSpec
+
+        spec = NewCharacterSpec(name="Sigrun", directory=str(self.save_dir), model_index=1,
+                                hair="Hair7", beard="BeardNone",
+                                skin_color=[0.5, 0.5, 0.5], hair_color=[0.1, 0.2, 0.3])
+
+        class FakeDialog:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def exec(self):
+                return 1
+
+            def result_spec(self):
+                return spec
+
+        with patch.object(mw, "NewCharacterDialog", FakeDialog):
+            self.window.create_new_character()
+
+        created = self.save_dir / "sigrun.fch"
+        self.assertTrue(created.is_file())
+        self.assertEqual(os.path.normcase(self.window.current_fch), os.path.normcase(str(created)))
+        self.assertEqual(self.window.save_status.state_label.text(), "Verified")
+        payload = unpack_player_data_hex(verify_fch_round_trip(str(created))["player_data_hex"])
+        self.assertEqual((payload["model_index"], payload["hair"], payload["beard"]), (1, "Hair7", "BeardNone"))
+        original = created.read_bytes()
+        self.window.save_save_file()
+        self.assertEqual(created.read_bytes(), original)
+
     def test_unsupported_inner_version_is_read_only(self):
         payload = realistic_player_data()
         payload["version"] = 30

@@ -15,9 +15,12 @@ from ui.miscTab import MiscTab
 from ui.saveStatusWidget import SaveStatusWidget
 from ui.valheim_detection import ScanState, ValheimScan, scan_valheim, valheim_warning_message
 from ui.branding import APP_NAME, APP_SUBTITLE, APP_AUTHOR, APP_WINDOW_TITLE, banner_path
+from ui.newCharacterDialog import NewCharacterDialog
 
 from subscripts.characterDiscovery import discover_character_saves
 from subscripts.fchUtil import serialize_save, write_fch_bytes
+from subscripts.newCharacter import create_character_file, root_from_spec
+from subscripts.saveErrors import SaveFormatError
 from subscripts.saveHealth import build_save_health_report
 from subscripts.saveSafety import replace_verified_save, verify_fch_round_trip
 from subscripts.workspace import (
@@ -100,10 +103,13 @@ class MainWindow(QMainWindow):
         )
         self.btn_refresh_characters = QPushButton("Refresh")
         self.btn_open_discovered = QPushButton("Open Character")
+        self.btn_new_character = QPushButton("New Character")
+        self.btn_new_character.setToolTip("Create a brand-new character file with the game's starting defaults and open it for editing.")
         discovery_layout.addWidget(QLabel("Character:"))
         discovery_layout.addWidget(self.character_combo, 1)
         discovery_layout.addWidget(self.btn_refresh_characters)
         discovery_layout.addWidget(self.btn_open_discovered)
+        discovery_layout.addWidget(self.btn_new_character)
         main_layout.addLayout(discovery_layout)
 
         self.discovery_help = QLabel()
@@ -146,6 +152,7 @@ class MainWindow(QMainWindow):
 
         self.btn_refresh_characters.clicked.connect(self.refresh_discovered_characters)
         self.btn_open_discovered.clicked.connect(self.open_selected_character)
+        self.btn_new_character.clicked.connect(self.create_new_character)
         self.character_combo.activated.connect(lambda _index: self._update_character_tooltip())
         self.btn_open_save.clicked.connect(self.open_save_file)
         self.btn_save_save.clicked.connect(self.save_save_file)
@@ -267,6 +274,22 @@ class MainWindow(QMainWindow):
         filename = self.character_combo.currentData()
         if filename:
             self.load_save_file(filename)
+
+    def create_new_character(self):
+        """Create a fresh character file from in-game defaults, then open it."""
+        dialog = NewCharacterDialog(self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+        spec = dialog.result_spec()
+        if spec is None:
+            return
+        try:
+            path = create_character_file(spec.directory, root_from_spec(spec))
+        except (FileExistsError, SaveFormatError, OSError) as exc:
+            QMessageBox.critical(self, "Character Was Not Created", str(exc))
+            return
+        self.refresh_discovered_characters()
+        self.load_save_file(str(path))
 
     def load_save_file(self, filename):
         source, modified_at = self._metadata_for_path(filename)

@@ -9,10 +9,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
 )
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QPalette
-from data.beards import VALHEIM_BEARDS
-from data.hairs import VALHEIM_HAIRS
+from data.appearance import BEARD_NONE, HAIR_NONE, VALHEIM_BEARDS, VALHEIM_HAIRS, display_key
 from ui.fieldTracker import FieldTracker, select_or_add_unknown
+from ui.glyphs import populate_appearance_combo
 
 
 def _to_qcolor(rgb_list) -> QColor:
@@ -37,12 +38,12 @@ class AppearanceTab(QWidget):
         self.model_combo.addItem("Female (Model 1)", 1)
 
         self.hair_combo = QComboBox()
-        for hair_id, hair_name in VALHEIM_HAIRS.items():
-            self.hair_combo.addItem(hair_name, hair_id)
+        self.hair_combo.setIconSize(QSize(48, 48))
+        populate_appearance_combo(self.hair_combo, VALHEIM_HAIRS, "hair")
 
         self.beard_combo = QComboBox()
-        for beard_id, beard_name in VALHEIM_BEARDS.items():
-            self.beard_combo.addItem(beard_name, beard_id)
+        self.beard_combo.setIconSize(QSize(48, 48))
+        populate_appearance_combo(self.beard_combo, VALHEIM_BEARDS, "beard")
 
         style_layout.addRow("Gender Model:", self.model_combo)
         style_layout.addRow("Hair Style:", self.hair_combo)
@@ -95,8 +96,8 @@ class AppearanceTab(QWidget):
             return
 
         select_or_add_unknown(self.model_combo, self.player_data.get("model_index", 0))
-        select_or_add_unknown(self.hair_combo, self.player_data.get("hair", "nohair"))
-        select_or_add_unknown(self.beard_combo, self.player_data.get("beard", "nobeard"))
+        select_or_add_unknown(self.hair_combo, display_key(self.player_data.get("hair", ""), HAIR_NONE))
+        select_or_add_unknown(self.beard_combo, display_key(self.player_data.get("beard", ""), BEARD_NONE))
         self.beard_combo.setEnabled(self.model_combo.currentData() == 0)
 
         self.current_skin_rgb = list(self.player_data.get("skin_color", [1.0, 1.0, 1.0]))

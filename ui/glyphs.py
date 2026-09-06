@@ -17,8 +17,37 @@ def clear_cache() -> None:
     _CACHE.clear()
 
 
+def glyph_root() -> Path:
+    return resource_path("assets/glyphs")
+
+
 def master_dir() -> Path:
     return resource_path(GLYPH_MASTER_DIR)
+
+
+def appearance_pixmap(kind: str, key: str, size: int = 48) -> QPixmap:
+    """Thumbnail for a hair or beard entry, or a null pixmap when no art exists."""
+    cache_key = (f"{kind}:{key}", "none", size)
+    cached = _CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    path = glyph_root() / kind / f"{key}.png"
+    pixmap = QPixmap(str(path)) if path.is_file() else QPixmap()
+    if not pixmap.isNull():
+        pixmap = pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    _CACHE[cache_key] = pixmap
+    return pixmap
+
+
+def populate_appearance_combo(combo, table: Dict[str, str], kind: str) -> None:
+    """Fill a combo with ``{key: label}`` entries, attaching thumbnails where art exists."""
+    combo.clear()
+    for key, label in table.items():
+        pixmap = appearance_pixmap(kind, key)
+        if pixmap.isNull():
+            combo.addItem(label, key)
+        else:
+            combo.addItem(QIcon(pixmap), label, key)
 
 
 def tint_pixmap(pixmap: QPixmap, color: QColor) -> QPixmap:

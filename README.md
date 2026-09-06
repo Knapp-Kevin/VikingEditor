@@ -56,9 +56,16 @@ Inventory editing combines the familiar character grid with original item-catego
 |---|---|
 | Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
 | Inventory | Categorised item picker with search and original tinted glyphs, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
-| Skills | Supported Valheim skill levels |
+| Skills | Supported Valheim skill levels, including adding vanilla skills the character does not have yet |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |
+| New characters | Create a brand-new character (name, model, hair, beard, colours) with the game's starting defaults, then edit it like any other |
+
+### Creating a character
+
+**New Character** on the main window writes a fresh `.fch` file into the Valheim characters folder you choose, using the exact defaults the game writes for a new character (starting torch and rag tunic, no skills yet, first-spawn intro pending). The file is verified before it is placed, an existing character with the same name is never overwritten, and the new character opens in the editor immediately. Use the Skills tab's **Add Skill** to give it any vanilla skill.
+
+Compatibility status for created characters is **Compatibility unverified** until a character created by Wulfpack Forge has been loaded in Valheim as part of the release evidence; the file layout is byte-for-byte the layout of a character created in-game on the same build.
 
 Known vanilla items use human-readable names and an appropriate original silhouette while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved and receive a neutral fallback glyph rather than being rejected simply because the bundled catalog does not recognize them.
 
