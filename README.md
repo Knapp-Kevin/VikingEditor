@@ -55,7 +55,7 @@ Inventory editing combines the familiar character grid with searchable catalog g
 | Area | Capabilities |
 |---|---|
 | Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
-| Inventory | Searchable vanilla item catalog, raw prefab support, stacks, durability, quality, variants, equipped state |
+| Inventory | Categorised item picker (Weapons, Bows and Ammo, Armor, Shields, Tools, Materials, Food and Mead, Trophies, Misc) with search and icons, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
 | Skills | Supported Valheim skill levels |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |

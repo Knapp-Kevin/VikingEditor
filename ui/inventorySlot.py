@@ -1,6 +1,9 @@
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QPushButton
 
 from data.items import resolve_item
+from ui.glyphs import item_icon
 
 
 class InventorySlot(QPushButton):
@@ -35,6 +38,8 @@ class InventorySlot(QPushButton):
             )
 
             equipped_marker = "\n[ EQUIPPED ]" if is_equipped else ""
+            self.setIcon(item_icon(prefab, 40))
+            self.setIconSize(QSize(40, 40))
             self.setText(f"{display_name}\nx{stack}{equipped_marker}")
             self.setToolTip(
                 f"Prefab: {prefab}\n"
@@ -52,6 +57,7 @@ class InventorySlot(QPushButton):
                     "background-color: #3e2723; color: #d7ccc8; border: 1px solid #5d4037;"
                 )
         else:
+            self.setIcon(QIcon())
             self.setText(f"({self.grid_x}, {self.grid_y})")
             self.setToolTip("Empty inventory slot")
             self.setStyleSheet(

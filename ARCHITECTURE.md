@@ -45,6 +45,7 @@ Owns the player-facing desktop experience.
 - `mainWindow.py` coordinates discovery, loading, workspace creation, editing, health state, and saving.
 - `saveStatusWidget.py` renders compact verification and compatibility state.
 - `branding.py` resolves Wulfpack Forge product metadata and bundled assets.
+- `itemPickerDialog.py` presents the catalog as curated categories (`data/item_groups.py`) with an icon grid and search; `glyphs.py` renders icons from original glyph masters under `assets/glyphs/items/` (resolved by `data/glyphs.py`) or draws placeholders when no master exists.
 - editor tabs own their respective user controls and data mapping.
 
 The UI should not bypass the workspace or save-safety layer.
