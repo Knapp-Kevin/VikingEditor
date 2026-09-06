@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from data.items import CATALOG_GAME_VERSION, completion_labels, resolve_item
+from ui.glyphs import item_pixmap
 
 
 class ItemEditDialog(QDialog):
@@ -41,6 +42,11 @@ class ItemEditDialog(QDialog):
         self.catalog_status = QLabel()
         self.catalog_status.setWordWrap(True)
 
+        self.glyph_preview = QLabel()
+        self.glyph_preview.setFixedSize(80, 80)
+        self.glyph_preview.setAlignment(Qt.AlignCenter)
+        self.glyph_preview.setAccessibleName("Inventory item preview")
+
         stack_value = int(item_data.get("stack", 1))
         quality_value = int(item_data.get("quality", 1))
         variant_value = int(item_data.get("variant", 0))
@@ -66,6 +72,7 @@ class ItemEditDialog(QDialog):
         self.equipped_input.setChecked(item_data.get("equipped", False))
 
         layout.addRow("Item / Prefab:", self.prefab_input)
+        layout.addRow("Preview:", self.glyph_preview)
         layout.addRow("Catalog:", self.catalog_status)
         layout.addRow("Stack Size:", self.stack_input)
         layout.addRow("Durability:", self.durability_input)
@@ -100,6 +107,7 @@ class ItemEditDialog(QDialog):
     def _apply_catalog_constraints(self, preserve_existing=True):
         raw_value = self.prefab_input.text().strip()
         item = resolve_item(raw_value)
+        self.glyph_preview.setPixmap(item_pixmap(raw_value, 72))
         version_label = f"Valheim {CATALOG_GAME_VERSION}" if CATALOG_GAME_VERSION else "bundled"
 
         if not item:

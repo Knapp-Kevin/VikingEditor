@@ -3,13 +3,14 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
 from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QImageReader, QPainter, QPixmap
 
-from data.glyphs import GLYPH_MASTER_DIR, TINTS, glyph_for
+from data.glyphs import GLYPH_IDS, GLYPH_MASTER_DIR, TINTS, glyph_for
 from data.items import ItemDefinition, resolve_item
 from ui.branding import resource_path
 
 _CACHE: Dict[Tuple[str, str, int], QPixmap] = {}
+GLYPH_MASTER_SIZE = 512
 
 
 def clear_cache() -> None:
@@ -83,3 +84,26 @@ def item_pixmap(target: Union[str, ItemDefinition], size: int = 64) -> QPixmap:
 
 def item_icon(target: Union[str, ItemDefinition], size: int = 64) -> QIcon:
     return QIcon(item_pixmap(target, size))
+
+
+def glyph_bundle_is_usable() -> bool:
+    """Check objective runtime requirements without pretending CI can judge art."""
+    if len(GLYPH_IDS) != 23 or len(set(GLYPH_IDS)) != 23:
+        return False
+
+    for glyph_id in GLYPH_IDS:
+        path = master_dir() / f"{glyph_id}.png"
+        if not path.is_file():
+            return False
+        reader = QImageReader(str(path))
+        if not reader.canRead():
+            return False
+        image = reader.read()
+        if (
+            image.isNull()
+            or image.width() != GLYPH_MASTER_SIZE
+            or image.height() != GLYPH_MASTER_SIZE
+            or not image.hasAlphaChannel()
+        ):
+            return False
+    return True

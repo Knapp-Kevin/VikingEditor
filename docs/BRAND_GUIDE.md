@@ -52,6 +52,19 @@ Rules:
 - provide a text fallback if the image cannot be loaded;
 - keep the visual treatment restrained enough that this remains a utility, not a game launcher.
 
+### In-app inventory glyphs
+
+Canonical inventory masters live in `assets/glyphs/items/`. They are original 512×512 transparent grayscale artwork, selected by item shape and catalog type, then tinted at runtime using the material palette in `data/glyphs.py`.
+
+- keep silhouettes readable at the 56 px Inventory size and the 32 px design floor;
+- preserve transparent backgrounds, one dark outline, and top-left two-tone lighting;
+- use the neutral generic-material glyph for unknown items rather than blocking or rewriting them;
+- keep item-art decisions strictly presentational;
+- record approved asset hashes in `assets/glyphs/SHA256SUMS`;
+- do not substitute extracted Valheim art, official logos, or VikingEditor branding.
+
+Hair and beard thumbnails remain a separate backlog in `docs/IMAGE_GEN_INDEX.md`; their reserved paths are not runtime requirements yet.
+
 ## UI direction
 
 Preferred visual language:

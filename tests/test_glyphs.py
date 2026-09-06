@@ -66,6 +66,9 @@ class GlyphRenderTests(unittest.TestCase):
     def test_item_icon_is_not_null(self):
         self.assertFalse(ui_glyphs.item_icon("Wood").isNull())
 
+    def test_all_item_masters_are_decodable_transparent_runtime_assets(self):
+        self.assertTrue(ui_glyphs.glyph_bundle_is_usable())
+
 
 if __name__ == "__main__":
     unittest.main()

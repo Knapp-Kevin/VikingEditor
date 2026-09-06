@@ -1,5 +1,10 @@
 # Image Generation Index (original glyph set)
 
+## Implementation status
+
+- **Complete:** all 23 inventory glyph masters are approved, bundled under `assets/glyphs/items/`, mapped in `data/glyphs.py`, and rendered with material tinting in the Inventory grid and item editor.
+- **Backlog:** 38 hairstyle thumbnails and 27 beard thumbnails. The current Appearance tab remains text-and-color based until those original assets and their UI integration receive a separate review.
+
 Lists every original image the bundled glyph set needs so the batch can be generated in one pass. Nothing here derives from Iron Gate art; each glyph depicts the concept, in one consistent house style, and is keyed on data the item catalog already carries (`item_type`) plus a material tint inferred from the prefab name. See `docs/BRAND_GUIDE.md` for the product palette this extends.
 
 ## Prompt template (paste into the image generator, one glyph per request)
@@ -83,7 +88,7 @@ One silhouette per entry in `data/beards.py` (22 named styles plus "No beard"), 
 
 ## Output manifest
 
-Generated files land in a local, git-excluded folder until the style is approved, then move to `assets/glyphs/` as original bundled art:
+Approved files move to `assets/glyphs/` as original bundled art. Work in progress stays outside the runtime asset tree:
 
 ```
 assets/glyphs/items/G01_sword.png ... G23_torch.png   (masters, 512x512, untinted grey)
@@ -91,4 +96,4 @@ assets/glyphs/hair/Hair1.png ... Hair37.png, nohair.png
 assets/glyphs/beard/Beard1.png ... Beard26.png, nobeard.png
 ```
 
-The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time.
+The app maps prefab -> (glyph, tint) with a small rules table in `data/glyphs.py` and tints at load time. The inventory masters are complete; the hair and beard paths above are reserved for the remaining appearance-art tranche.

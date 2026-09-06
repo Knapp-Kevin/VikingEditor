@@ -9,6 +9,7 @@ a = Analysis(
         ("data/valheim_items.json", "data"),
         ("assets/wulfpack-forge-banner.jpg", "assets"),
         ("assets/FrostWulf-favicon.png", "assets"),
+        ("assets/glyphs/items", "assets/glyphs/items"),
     ],
     hiddenimports=[],
     hookspath=[],

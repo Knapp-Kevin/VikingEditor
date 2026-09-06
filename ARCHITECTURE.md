@@ -45,7 +45,7 @@ Owns the player-facing desktop experience.
 - `mainWindow.py` coordinates discovery, loading, workspace creation, editing, health state, and saving.
 - `saveStatusWidget.py` renders compact verification and compatibility state.
 - `branding.py` resolves Wulfpack Forge product metadata and bundled assets.
-- `itemPickerDialog.py` presents the catalog as curated categories (`data/item_groups.py`) with an icon grid and search; `glyphs.py` renders icons from original glyph masters under `assets/glyphs/items/` (resolved by `data/glyphs.py`) or draws placeholders when no master exists.
+- `itemPickerDialog.py` presents the catalog as curated categories (`data/item_groups.py`) with an icon grid and search; `glyphs.py` renders, tints, caches, and validates original inventory glyph masters under `assets/glyphs/items/`, with safe fallback behavior resolved by `data/glyphs.py`.
 - editor tabs own their respective user controls and data mapping.
 
 The UI should not bypass the workspace or save-safety layer.
@@ -121,6 +121,7 @@ Separates discoverability metadata from write policy.
 
 - `valheim_items.json` is generated, versioned item metadata.
 - `items.py` loads catalog data and owns curated safety constraints/resolution behavior.
+- `glyphs.py` maps prefab/category metadata to presentation-only silhouettes and material tints.
 
 A catalog refresh must not silently alter write constraints.
 
@@ -191,8 +192,9 @@ The bundle includes:
 - Python application/runtime code;
 - `data/valheim_items.json`;
 - `assets/wulfpack-forge-banner.jpg`.
+- `assets/glyphs/items/` with 23 original inventory masters.
 
-The packaged smoke test verifies that critical generated and branding assets can be resolved from the PyInstaller runtime environment. Branding validation also enforces a README-scale quality floor for the canonical banner.
+The packaged smoke test verifies that critical generated, branding, and glyph assets can be resolved and decoded from the PyInstaller runtime environment. It checks objective runtime properties, not subjective art quality.
 
 ## Compatibility boundary
 

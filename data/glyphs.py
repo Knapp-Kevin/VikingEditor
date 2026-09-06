@@ -11,6 +11,14 @@ GLYPH_MASTER_DIR = "assets/glyphs/items"
 DEFAULT_GLYPH = "G20_ingot"
 DEFAULT_TINT = "slate"
 
+GLYPH_IDS = (
+    "G01_sword", "G02_axe", "G03_mace", "G04_knife", "G05_spear",
+    "G06_greatsword", "G07_battleaxe", "G08_polearm", "G09_sledge",
+    "G10_staff", "G11_bow", "G12_crossbow", "G13_arrow", "G14_shield",
+    "G15_helmet", "G16_chest", "G17_legs", "G18_cape", "G19_trinket",
+    "G20_ingot", "G21_food", "G22_trophy", "G23_torch",
+)
+
 TINTS = {
     "slate": "#7d7f83",
     "wood": "#8a5a2b",

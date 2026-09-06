@@ -46,21 +46,21 @@ Appearance controls use readable choices and color previews, so changing a model
 
 ![Wulfpack Forge Appearance tab showing synthetic character customization controls](docs/screenshots/appearance.png)
 
-Inventory editing combines the familiar character grid with searchable catalog guidance, known stack and quality limits, and a raw-prefab path for modded or newer items.
+Inventory editing combines the familiar character grid with original item-category glyphs, material tinting, searchable catalog guidance, known stack and quality limits, and a raw-prefab path for modded or newer items.
 
-![Wulfpack Forge Inventory tab showing synthetic items and the catalog-aware Bronze Sword editor](docs/screenshots/inventory.png)
+![Wulfpack Forge Inventory tab showing synthetic items and the categorised, searchable item picker with original glyph art](docs/screenshots/inventory.png)
 
 ## What Wulfpack Forge can edit
 
 | Area | Capabilities |
 |---|---|
 | Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
-| Inventory | Categorised item picker (Weapons, Bows and Ammo, Armor, Shields, Tools, Materials, Food and Mead, Trophies, Misc) with search and icons, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
+| Inventory | Categorised item picker with search and original tinted glyphs, raw prefab entry for modded items, stacks, durability, quality, variants, equipped state |
 | Skills | Supported Valheim skill levels |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |
 
-Known vanilla items use human-readable names while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved rather than rejected simply because the bundled catalog does not recognize them.
+Known vanilla items use human-readable names and an appropriate original silhouette while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved and receive a neutral fallback glyph rather than being rejected simply because the bundled catalog does not recognize them.
 
 ## Character discovery and Steam Cloud
 
@@ -195,7 +195,7 @@ The repository uses PyInstaller to produce a self-contained Windows executable. 
 - installs application dependencies;
 - runs the automated test suite;
 - builds `WulfpackForge.exe`;
-- bundles the versioned item catalog and canonical Wulfpack Forge banner;
+- bundles the versioned item catalog, canonical Wulfpack Forge banner, and original inventory glyph masters;
 - smoke-tests the packaged executable and required assets;
 - creates a Windows ZIP package;
 - generates SHA-256 checksums;
@@ -216,6 +216,7 @@ Automated coverage currently includes:
 - item catalog generation and version drift;
 - catalog resolution and duplicate-name behavior;
 - unknown/modded item preservation;
+- inventory glyph mapping, fallback, tinting, decoding, and transparency;
 - offscreen Qt widget behavior;
 - Wulfpack Forge branding identity and decodable runtime asset validation;
 - Python source compilation;
