@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a reproducible Wulfpack Forge defect
+title: "[Bug] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Wulfpack Forge. Please do not upload a valuable primary character if a disposable test character can reproduce the problem.
+
+  - type: input
+    id: wulfpack_version
+    attributes:
+      label: Wulfpack Forge version or commit
+      placeholder: release tag or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: valheim_version
+    attributes:
+      label: Valheim version
+      placeholder: e.g. 0.221.12
+    validations:
+      required: true
+
+  - type: dropdown
+    id: save_source
+    attributes:
+      label: Character source
+      options:
+        - Local Valheim save
+        - Steam Cloud copy synchronized locally
+        - Manually browsed .fch file
+        - Modded character
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: What did you do, in order?
+      placeholder: |
+        1. Opened...
+        2. Changed...
+        3. Clicked...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include exact error text when available.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Save-safety checks
+      options:
+        - label: I have preserved the original .fch and any Wulfpack Forge .bak files.
+        - label: Valheim was closed when I attempted to save.
+        - label: I have removed private or unnecessary personal information from anything I am sharing.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, mod details, Windows version, or other relevant information.
