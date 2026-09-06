@@ -1,0 +1,33 @@
+name: Documentation issue
+description: Report documentation that is missing, stale, misleading, or inconsistent with current behavior
+title: "[Docs] "
+labels: []
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Documentation location
+      description: File, section, link, or screen where the problem appears.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current behavior or source of truth
+      description: Point to code, tests, issue, release, or reproducible behavior that shows the documentation is stale.
+    validations:
+      required: false
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: Optional proposed wording or structure.
