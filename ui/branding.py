@@ -9,8 +9,9 @@ APP_SUBTITLE = "Character Editor for Valheim"
 APP_AUTHOR = "Frostwulf"
 APP_WINDOW_TITLE = f"{APP_NAME} | {APP_SUBTITLE}"
 BANNER_RELATIVE_PATH = "assets/wulfpack-forge-banner.jpg"
-MIN_BANNER_WIDTH = 800
-MIN_BANNER_HEIGHT = 250
+MIN_BANNER_WIDTH = 1200
+MIN_BANNER_HEIGHT = 400
+MIN_BANNER_BYTES = 30_000
 
 
 def resource_path(relative_path: str) -> Path:
@@ -26,9 +27,9 @@ def banner_path() -> Path:
 
 
 def banner_is_usable() -> bool:
-    """Verify the approved banner exists, decodes, and has banner-scale dimensions."""
+    """Verify the approved banner is a readable, README-scale runtime asset."""
     path = banner_path()
-    if not path.is_file():
+    if not path.is_file() or path.stat().st_size < MIN_BANNER_BYTES:
         return False
 
     reader = QImageReader(str(path))
