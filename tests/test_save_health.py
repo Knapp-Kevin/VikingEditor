@@ -26,6 +26,7 @@ class SaveHealthTests(unittest.TestCase):
         self.assertTrue(report.writable)
         self.assertEqual(report.catalog_game_version, CATALOG_GAME_VERSION)
         self.assertIn("checksum and structure verified", report.detail.lower())
+        self.assertIn("protected workspace snapshot", report.detail.lower())
 
     def test_unknown_save_version_is_inspectable_but_not_writable(self):
         report = build_save_health_report(
@@ -54,6 +55,22 @@ class SaveHealthTests(unittest.TestCase):
         self.assertFalse(report.verification_ok)
         self.assertFalse(report.writable)
         self.assertIn("checksum mismatch", report.detail)
+
+    def test_external_source_change_needs_attention_without_calling_save_corrupt(self):
+        report = build_save_health_report(
+            valid=True,
+            version=43,
+            source="Steam Cloud (local copy)",
+            modified_at=1_700_000_000,
+            source_changed=True,
+        )
+
+        self.assertEqual(report.state, SAVE_STATE_NEEDS_ATTENTION)
+        self.assertTrue(report.verification_ok)
+        self.assertFalse(report.writable)
+        self.assertTrue(report.source_changed)
+        self.assertIn("changed outside Wulfpack Forge", report.detail)
+        self.assertIn("reload", report.detail.lower())
 
     def test_backup_path_is_presented_by_filename(self):
         report = build_save_health_report(
