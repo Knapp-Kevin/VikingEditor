@@ -89,6 +89,11 @@ def candidate_character_directories(
     home: Optional[Path] = None,
     system_name: Optional[str] = None,
 ) -> List[tuple[Path, str]]:
+    """Return character directories that already exist on the local computer.
+
+    Steam Cloud entries here are local synchronized copies under Steam's userdata
+    tree. Wulfpack Forge does not query or download remote Steam Cloud storage.
+    """
     home = Path(home or Path.home())
     system_name = system_name or platform.system()
 
@@ -105,8 +110,8 @@ def candidate_character_directories(
         for account_dir in account_dirs:
             remote = account_dir / VALHEIM_APP_ID / "remote"
             candidates.extend([
-                (remote / "characters", "Steam Cloud"),
-                (remote / "characters_local", "Steam Local Sync"),
+                (remote / "characters", "Steam Cloud (local copy)"),
+                (remote / "characters_local", "Steam local copy"),
             ])
 
     found = []
