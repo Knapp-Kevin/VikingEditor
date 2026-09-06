@@ -5,6 +5,9 @@ from ui.branding import (
     APP_SUBTITLE,
     APP_AUTHOR,
     BANNER_RELATIVE_PATH,
+    MIN_BANNER_WIDTH,
+    MIN_BANNER_HEIGHT,
+    banner_is_usable,
     banner_path,
 )
 
@@ -17,9 +20,10 @@ class BrandingTests(unittest.TestCase):
 
     def test_approved_banner_is_a_runtime_resource(self):
         self.assertEqual(BANNER_RELATIVE_PATH, "assets/wulfpack-forge-banner.jpg")
-        path = banner_path()
-        self.assertTrue(path.is_file())
-        self.assertGreater(path.stat().st_size, 50_000)
+        self.assertGreaterEqual(MIN_BANNER_WIDTH, 1000)
+        self.assertGreaterEqual(MIN_BANNER_HEIGHT, 300)
+        self.assertTrue(banner_path().is_file())
+        self.assertTrue(banner_is_usable())
 
 
 if __name__ == "__main__":
