@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/wulfpack-forge-banner.jpg" alt="Wulfpack Forge banner" width="100%">
+  <img src="assets/wulfpack-forge-banner.jpg" alt="Wulfpack Forge banner" width="1200">
 </p>
 
 <h1 align="center">Wulfpack Forge</h1>
@@ -14,7 +14,7 @@
 
 Wulfpack Forge is a player-first desktop editor for Valheim character saves. It is designed for the person who wants to change a beard, hair color, inventory item, skill, or stat without learning Python, searching obscure save folders, or gambling a character file on a direct overwrite.
 
-The normal path is deliberately simple: download the Windows build, open a character that exists locally, make changes, and click **Save Changes**. Underneath that simple workflow, Wulfpack Forge verifies save structure and checksums, blocks writes while Valheim is running, creates backups, and only replaces the destination after the candidate save passes validation.
+The normal path is deliberately simple: download the Windows build, open a character that exists locally, make changes, and click **Save Changes**. Underneath that simple workflow, Wulfpack Forge verifies save structure and checksums, creates a protected workspace snapshot and working copy, detects outside changes to the active character, blocks writes while Valheim is running, backs up the active save, and only replaces it after the edited candidate passes validation.
 
 > **Unofficial community software.** Wulfpack Forge is not affiliated with, authorized by, or endorsed by Iron Gate Studio or Coffee Stain Publishing.
 
@@ -28,8 +28,8 @@ The normal path is deliberately simple: download the Windows build, open a chara
 4. Close Valheim.
 5. Launch `WulfpackForge.exe`.
 6. Select a discovered character or browse to a `.fch` file.
-7. Edit the character.
-8. Click **Save Changes**.
+7. Check the compact character status, make your edits, and click **Save Changes**.
+8. Wulfpack Forge verifies the working copy, confirms the active source has not changed, backs up the current active save, and applies the edit.
 
 **No Python, Git, `pip`, or command prompt is required for the packaged Windows build.**
 
@@ -63,17 +63,53 @@ If no character appears:
 
 Wulfpack Forge does **not** connect to a remote Steam Cloud API or download saves directly from Valve.
 
+## Managed character workspace
+
+Opening a verified character creates a Wulfpack Forge workspace outside Valheim's own save directories. On Windows the default root is `%LOCALAPPDATA%\WulfpackForge`.
+
+For each active character, Wulfpack Forge keeps:
+
+```text
+WulfpackForge/
+└── characters/
+    └── active/
+        └── <character-id>/
+            ├── source/      # immutable snapshots captured when the character is opened
+            ├── working/     # current verified Wulfpack Forge working copy
+            ├── backups/     # previous active saves preserved before replacement
+            └── metadata.json
+```
+
+The workspace is deliberately separate from Valheim and Steam directories. Wulfpack Forge does not create organizational folders inside the game's save tree or ask Steam Cloud to synchronize its internal working files.
+
+The source snapshot gives the editing session an immutable baseline. The working copy gives Wulfpack Forge a durable verified representation of the intended edit before the active game file is touched. Immediately before replacement, Wulfpack Forge compares the active character against the hash recorded when it was opened. If Steam, Valheim, another editor, or another process changed that file, saving is blocked and the player is asked to reload rather than overwriting the newer state.
+
+## Character status
+
+The main window exposes a compact status surface instead of hiding safety state in tooltips and dialogs.
+
+Current states are intentionally specific:
+
+- **Verified** means checksum and structure verification passed and the character save version is in Wulfpack Forge's current write-validated set.
+- **Compatibility unverified** means the file verifies structurally, but its save version has not been validated for writing. It may be inspected, but **Save Changes** is disabled.
+- **Needs attention** means verification failed or the active source changed outside Wulfpack Forge after it was opened.
+
+The status also shows the save version, source, modification time, bundled Valheim catalog version, and the most recent backup when available.
+
 ## Save safety
 
 Character editing should not require optimism as a recovery plan. Wulfpack Forge uses a preservation-first write path:
 
+- **Immutable opened snapshot.** A verified copy of the source is preserved in the managed workspace when editing begins.
+- **Verified working copy.** The edited candidate is verified and stored in the Wulfpack Forge workspace before the active save is replaced.
+- **External-change detection.** The active source hash is checked before replacement so newer Steam, Valheim, or external edits are not silently overwritten.
 - **Valheim process protection.** Writes are blocked while Valheim is running, with a second check immediately before replacement.
 - **Candidate-first compilation.** Edited data is compiled to a temporary `.fch` candidate rather than written over the destination.
 - **Strict SHA-512 verification.** The generated save envelope and checksum are validated.
 - **Round-trip verification.** The candidate is reparsed and compared with the expected serialized data.
-- **Automatic timestamped backup.** Existing destinations are copied before replacement.
-- **Atomic replacement.** The destination changes only after verification succeeds.
-- **Failure-safe behavior.** If verification fails, the existing destination is left untouched.
+- **Automatic timestamped backup.** The current active save is copied into the character's Wulfpack Forge workspace before replacement.
+- **Atomic replacement.** The active destination changes only after verification succeeds.
+- **Failure-safe behavior.** If verification or source-consistency checking fails, the existing active destination is left untouched.
 
 Backups are still worth keeping for characters you care about, especially around major game updates or heavily modded saves. The point is that the editor should add protection, not outsource it to the player's memory.
 
@@ -83,7 +119,9 @@ The bundled item catalog is currently generated from **Valheim 0.221.12** data a
 
 Valheim 1.0 is scheduled for **September 9, 2026**. Wulfpack Forge will not claim post-1.0 compatibility merely because the application launches. The release gate tracked in [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2) requires a deliberate catalog refresh plus real 1.0 character-save validation, including load, no-op round trip, appearance editing, inventory editing, backup behavior, atomic replacement, and in-game acceptance.
 
-Until that gate passes, unknown items are preserved conservatively. They may be modded content or legitimate items introduced by a newer Valheim build.
+The current parser/serializer is explicitly validated for character-save version **43**. A structurally valid save using a different character-save version is shown as **Compatibility unverified** and remains read-only until that version has its own evidence.
+
+Until the 1.0 gate passes, unknown items are preserved conservatively. They may be modded content or legitimate items introduced by a newer Valheim build.
 
 ## Item catalog design
 
@@ -139,8 +177,8 @@ The repository uses PyInstaller to produce a self-contained Windows executable. 
 - installs application dependencies;
 - runs the automated test suite;
 - builds `WulfpackForge.exe`;
-- bundles the versioned item catalog and Wulfpack Forge banner;
-- smoke-tests the packaged executable;
+- bundles the versioned item catalog and canonical Wulfpack Forge banner;
+- smoke-tests the packaged executable and required assets;
 - creates a Windows ZIP package;
 - generates SHA-256 checksums;
 - uploads the build as a workflow artifact;
@@ -152,16 +190,24 @@ Automated coverage currently includes:
 
 - save-safety behavior;
 - checksum and round-trip verification;
+- managed workspace snapshots and working copies;
+- external active-source change detection;
+- workspace-managed backups;
 - local and Steam-synchronized character discovery;
+- save-health and compatibility-state derivation;
 - item catalog generation and version drift;
 - catalog resolution and duplicate-name behavior;
 - unknown/modded item preservation;
 - offscreen Qt widget behavior;
-- Wulfpack Forge branding asset validation;
+- Wulfpack Forge branding quality and runtime asset validation;
 - Python source compilation;
 - packaged Windows executable smoke testing.
 
 The durable product roadmap is [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2).
+
+### UI screenshots
+
+The README will include screenshots of the **actual Wulfpack Forge application**, not mockups, after the current workspace/status UI stabilizes. Screenshot capture and maintenance are tracked in issue #2 so the images represent the shipping interface rather than an intermediate design.
 
 ## Project structure
 
@@ -178,10 +224,13 @@ The durable product roadmap is [issue #2](https://github.com/Knapp-Kevin/WulfPac
 │   ├── characterDiscovery.py
 │   ├── fchUtil.py
 │   ├── playerDataUtil.py
-│   └── saveSafety.py
+│   ├── saveHealth.py
+│   ├── saveSafety.py
+│   └── workspace.py
 ├── ui/
 │   ├── branding.py
 │   ├── mainWindow.py
+│   ├── saveStatusWidget.py
 │   ├── appearanceTab.py
 │   ├── inventoryTab.py
 │   ├── skillsTab.py

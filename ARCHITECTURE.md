@@ -12,19 +12,29 @@ PySide6 desktop UI
   │
   ├── character discovery
   ├── appearance / inventory / skills / stats editors
+  ├── save-health/status surface
   └── save orchestration
         │
+        ├── immutable opened baseline in memory
+        │
         ▼
+managed Wulfpack Forge workspace
+  │     ├── source snapshot
+  │     ├── verified working copy
+  │     ├── backups
+  │     └── metadata / expected source hash
+  │
+  ▼
 Valheim character parser / serializer
-        │
-        ▼
-verification + backup + atomic replacement
-        │
-        ▼
-local .fch file
+  │
+  ▼
+verification + external-change guard + atomic replacement
+  │
+  ▼
+active local .fch file
 ```
 
-Wulfpack Forge does not use a server or remote database for normal operation. Character files are read from the local machine.
+Wulfpack Forge does not use a server or remote database for normal operation. Character files are read from the local machine. Steam Cloud characters participate only after Steam has synchronized a local copy.
 
 ## Major components
 
@@ -32,11 +42,12 @@ Wulfpack Forge does not use a server or remote database for normal operation. Ch
 
 Owns the player-facing desktop experience.
 
-- `mainWindow.py` coordinates discovery, loading, editing, and saving.
+- `mainWindow.py` coordinates discovery, loading, workspace creation, editing, health state, and saving.
+- `saveStatusWidget.py` renders compact verification and compatibility state.
 - `branding.py` resolves Wulfpack Forge product metadata and bundled assets.
 - editor tabs own their respective user controls and data mapping.
 
-The UI should not bypass the save-safety layer.
+The UI should not bypass the workspace or save-safety layer.
 
 ### `subscripts/characterDiscovery.py`
 
@@ -48,23 +59,60 @@ A Steam Cloud entry is discoverable only when a synchronized copy exists on disk
 
 Provides low-level Valheim `.fch` parsing and compilation behavior inherited and extended from the VikingEditor codebase.
 
-Normal product flows should use the strict verification layer rather than relying on permissive parser behavior alone.
+Normal product flows use the strict verification layer rather than relying on permissive parser behavior alone.
 
 ### `subscripts/playerDataUtil.py`
 
 Decodes and repacks the character's inner player-data payload.
 
+### `subscripts/saveHealth.py`
+
+Converts verification, save-version compatibility, source metadata, external-change state, catalog version, and backup state into explicit player-facing status.
+
+Current states:
+
+- `Verified`
+- `Compatibility unverified`
+- `Needs attention`
+
+A file that parses successfully is not automatically considered writable. The serializer currently has explicit write validation for character-save version 43.
+
+### `subscripts/workspace.py`
+
+Owns Wulfpack Forge's managed editing workspace.
+
+Default roots:
+
+- Windows: `%LOCALAPPDATA%\WulfpackForge`
+- macOS: `~/Library/Application Support/WulfpackForge`
+- Linux: `$XDG_DATA_HOME/WulfpackForge` or `~/.local/share/WulfpackForge`
+
+Each active character receives a stable workspace containing:
+
+```text
+characters/active/<character-id>/
+├── source/
+├── working/
+├── backups/
+└── metadata.json
+```
+
+When a character is opened, the source must pass strict verification before the workspace is created. The workspace records an immutable source snapshot, a verified working copy, and the expected SHA-256 of the active source. The source snapshot is not edited during the session.
+
+The workspace is deliberately outside Valheim's save tree so Wulfpack Forge's own history is not mistaken for active game state or synchronized by Steam as additional characters.
+
 ### `subscripts/saveSafety.py`
 
-Owns the write-safety boundary:
+Owns the final write-safety boundary:
 
 1. validate generated candidate;
 2. verify checksum and structure;
 3. reparse and compare expected root data;
-4. create a timestamped backup when replacing an existing destination;
-5. atomically replace the destination.
+4. confirm the active destination still matches the source hash recorded when opened;
+5. create a timestamped backup in the managed character workspace;
+6. atomically replace the active destination.
 
-If verification fails, replacement must not occur.
+If candidate verification or destination consistency fails, replacement must not occur.
 
 ### `data/`
 
@@ -81,7 +129,7 @@ Generates the versioned vanilla item snapshot and guards against unexpected sour
 
 ### `tests/`
 
-Provides behavioral evidence for save safety, discovery, catalog handling, UI widgets, branding assets, and related regression boundaries.
+Provides behavioral evidence for save safety, managed workspaces, external-change protection, status derivation, discovery, catalog handling, UI widgets, branding assets, and related regression boundaries.
 
 ## Save lifecycle
 
@@ -91,22 +139,44 @@ Provides behavioral evidence for save safety, discovery, catalog handling, UI wi
 2. Strictly verify the save envelope/checksum.
 3. Parse outer character data.
 4. Decode player payload.
-5. Populate editor tabs.
+5. Create an immutable in-memory baseline.
+6. Create a managed workspace with an immutable source snapshot, verified working copy, and expected source hash.
+7. Derive the character health/compatibility state.
+8. Populate editor tabs.
 
-A save that cannot be verified is not loaded into the normal editing flow.
+A save that cannot be verified and protected is not loaded into the normal editing flow.
 
-### Save
+### Edit
 
-1. Collect changes from editor tabs.
-2. Repack player data.
-3. Serialize the expected root structure.
-4. Compile to a temporary `.fch` candidate in the destination directory.
-5. Verify and reparse the candidate.
-6. Re-check that Valheim is not running.
-7. Back up an existing destination.
-8. Atomically replace the destination.
+UI controls mutate the working in-memory character representation. The opened baseline remains unchanged during the editing session. The durable workspace source snapshot likewise remains unchanged.
 
-The destination is never the scratch space.
+This separation supports future semantic diffing and recovery without reconstructing the original state after the fact.
+
+### Save Changes
+
+1. Confirm the active source still matches the expected hash from open time.
+2. Collect changes from editor tabs.
+3. Repack player data.
+4. Serialize the expected root structure.
+5. Compile to a temporary `.fch` candidate in the active destination directory.
+6. Strictly verify and reparse the candidate.
+7. Copy the verified candidate into the managed workspace as the current working copy.
+8. Re-check that Valheim is not running.
+9. At the replacement boundary, re-check the active source hash.
+10. Back up the current active destination into the character workspace.
+11. Atomically replace the active destination.
+12. Update workspace metadata to the newly applied source hash and backup path.
+13. Refresh the player-facing health/status surface.
+
+The active Valheim file is never the scratch space.
+
+## External-change protection
+
+Steam synchronization creates a special race for save editors: a character can be valid when opened and still be changed by another machine or process before the user clicks Save Changes.
+
+Wulfpack Forge records the active source SHA-256 at open time and compares it again before replacement. A mismatch is treated as a concurrency conflict, not as save corruption. Saving is blocked and the player must reload the newer source.
+
+This guard complements backups. A backup can recover overwritten data after the fact; source-consistency checking avoids performing the stale overwrite in the first place.
 
 ## Packaging
 
@@ -118,7 +188,7 @@ The bundle includes:
 - `data/valheim_items.json`;
 - `assets/wulfpack-forge-banner.jpg`.
 
-The packaged smoke test verifies that critical generated and branding assets can be resolved from the PyInstaller runtime environment.
+The packaged smoke test verifies that critical generated and branding assets can be resolved from the PyInstaller runtime environment. Branding validation also enforces a README-scale quality floor for the canonical banner.
 
 ## Compatibility boundary
 
@@ -141,6 +211,8 @@ New editor capabilities should:
 - preserve unrelated data;
 - remain human-readable in the normal UI;
 - keep raw/modded escape hatches when appropriate;
+- use the managed workspace rather than inventing parallel backup behavior;
+- preserve the immutable opened baseline when practical;
 - add tests at the narrowest stable boundary;
 - avoid coupling UI widgets directly to unsafe file replacement logic.
 

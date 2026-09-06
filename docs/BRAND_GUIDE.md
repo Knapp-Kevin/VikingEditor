@@ -21,13 +21,15 @@ Canonical repository asset:
 
 The banner establishes the visual direction: a frozen wolf, dark Norse-fantasy atmosphere, ice-blue illumination, dark charcoal/navy surfaces, silver highlights, and restrained warm ember accents.
 
+The canonical raster must remain suitable for full-width README display. Do not replace it with a thumbnail or aggressively compressed derivative. The runtime quality gate requires at least **1200×400 pixels** and a non-trivial encoded size so a visibly degraded asset fails validation instead of quietly shipping.
+
 Do not replace the approved banner casually or create competing product marks inside the repository.
 
 ## README usage
 
 The banner should appear across the top of the README before the product heading.
 
-Keep the title/subtitle/byline in text beneath the image so the product remains accessible, searchable, and understandable even when images do not load.
+Keep the title/subtitle/byline in text beneath the image so the product remains accessible, searchable, and understandable even when images do not load. The README should reference the canonical repository asset directly rather than a separately compressed copy.
 
 ## Application usage
 
@@ -54,6 +56,12 @@ Preferred visual language:
 - geometric/rune-inspired details used sparingly.
 
 Do not sacrifice native platform clarity for decorative theming.
+
+## Screenshots
+
+README screenshots should show the **actual current Wulfpack Forge UI**, not concept art or mockups. Capture them from a validated packaged or source build after the relevant UI tranche is stable, and refresh them when the visible product materially changes.
+
+Prefer a small set of useful screenshots, such as the main character/status view, appearance editing, and inventory editing. Screenshots should demonstrate the product rather than becoming a second gallery of decorative imagery.
 
 ## Typography
 
