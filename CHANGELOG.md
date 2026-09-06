@@ -27,6 +27,7 @@ The project is currently evolving toward its first branded Wulfpack Forge releas
 - The canonical README/application banner was restored from the approved 2048×682 master through a binary-safe local conversion.
 - Save-status metadata and guidance now use readable foreground colors on the dark status surface.
 - README release media now shows the current application with synthetic, publication-safe character data.
+- README availability guidance now states explicitly that no public Windows release exists yet and distinguishes temporary CI artifacts from release downloads.
 
 ## Branding and governance milestone
 
