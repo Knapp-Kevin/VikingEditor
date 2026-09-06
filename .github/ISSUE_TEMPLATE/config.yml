@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security and sensitive save-integrity reports
+    url: https://github.com/Knapp-Kevin/WulfPackForge/security
+    about: Use the repository security flow for sensitive vulnerabilities. See SECURITY.md before disclosing details publicly.
+  - name: Player support guidance
+    url: https://github.com/Knapp-Kevin/WulfPackForge/blob/main/SUPPORT.md
+    about: Check common discovery, Steam Cloud, compatibility, and save-safety guidance before opening an issue.

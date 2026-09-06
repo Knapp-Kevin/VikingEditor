@@ -1,146 +1,126 @@
-# Wulfpack Forge
+<p align="center">
+  <img src="assets/wulfpack-forge-banner.jpg" alt="Wulfpack Forge banner" width="100%">
+</p>
 
-## Character Editor for Valheim
+<h1 align="center">Wulfpack Forge</h1>
+<p align="center"><strong>Character Editor for Valheim</strong><br>by Frostwulf</p>
+<p align="center"><em>Based on <a href="https://github.com/miskamero/VikingEditor">VikingEditor</a> by miskamero</em></p>
 
-**by Frostwulf**  
-*Based on [VikingEditor](https://github.com/miskamero/VikingEditor) by [miskamero](https://github.com/miskamero)*
+<p align="center">
+  <a href="https://github.com/Knapp-Kevin/WulfPackForge/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/Knapp-Kevin/WulfPackForge/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="https://github.com/Knapp-Kevin/WulfPackForge/actions/workflows/package-windows.yml"><img alt="Windows build" src="https://github.com/Knapp-Kevin/WulfPackForge/actions/workflows/package-windows.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: GPLv3" src="https://img.shields.io/badge/license-GPLv3-blue.svg"></a>
+</p>
 
-Wulfpack Forge is a desktop character editor for **Valheim** designed for players who want to change their character without learning save-file internals, installing developer tools, or manually hunting through folders.
+Wulfpack Forge is a player-first desktop editor for Valheim character saves. It is designed for the person who wants to change a beard, hair color, inventory item, skill, or stat without learning Python, searching obscure save folders, or gambling a character file on a direct overwrite.
 
-Use it to customize appearance, inventory, skills, stats, and character details through a graphical interface. Wulfpack Forge automatically discovers supported Valheim character saves, verifies them before loading, creates backups before replacement, and refuses to write while Valheim is running.
+The normal path is deliberately simple: download the Windows build, open a character that exists locally, make changes, and click **Save Changes**. Underneath that simple workflow, Wulfpack Forge verifies save structure and checksums, blocks writes while Valheim is running, creates backups, and only replaces the destination after the candidate save passes validation.
 
 > **Unofficial community software.** Wulfpack Forge is not affiliated with, authorized by, or endorsed by Iron Gate Studio or Coffee Stain Publishing.
 
----
+## Quick start
 
-## For Players: Download and Run
+### Windows players
 
-### Windows
+1. Open the repository's [Releases](https://github.com/Knapp-Kevin/WulfPackForge/releases) page.
+2. Download `WulfpackForge-windows-x64.zip` or `WulfpackForge.exe` from the latest published release.
+3. Extract the ZIP if needed.
+4. Close Valheim.
+5. Launch `WulfpackForge.exe`.
+6. Select a discovered character or browse to a `.fch` file.
+7. Edit the character.
+8. Click **Save Changes**.
 
-The normal player experience is intended to be simple:
+**No Python, Git, `pip`, or command prompt is required for the packaged Windows build.**
 
-1. Open the repository's **Releases** page.
-2. Download `WulfpackForge-windows-x64.zip` or `WulfpackForge.exe` from the latest release.
-3. If you downloaded the ZIP, extract it.
-4. Launch `WulfpackForge.exe`.
-5. Select your Valheim character from the automatically discovered list.
-6. Make your changes.
-7. Click **Save Changes**.
+If a packaged release has not been published yet, the source-install path remains available for developers and advanced users under [Running from source](#running-from-source).
 
-**You do not need Python, Git, `pip`, or a command prompt to use the packaged Windows build.**
+## What Wulfpack Forge can edit
 
-If no packaged release is available yet, see [Running from Source](#running-from-source) below. That path is intended for developers, contributors, and advanced users.
+| Area | Capabilities |
+|---|---|
+| Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
+| Inventory | Searchable vanilla item catalog, raw prefab support, stacks, durability, quality, variants, equipped state |
+| Skills | Supported Valheim skill levels |
+| Stats | Supported health, stamina, progression, and related character values |
+| Character details | Supported character-level fields such as name |
 
----
+Known vanilla items use human-readable names while retaining their prefab IDs. Unknown, modded, or newer-version items are preserved rather than rejected simply because the bundled catalog does not recognize them.
 
-## Valheim Version Compatibility
+## Character discovery and Steam Cloud
 
-Wulfpack Forge treats game-version compatibility as part of save safety, not as a footnote.
+Wulfpack Forge reads **character files that exist on the local computer**.
 
-The bundled item catalog is currently generated from **Valheim 0.221.12** data and contains more than 900 player-selectable vanilla items. The catalog records the Valheim version it was generated from and the item editor displays that version when resolving items.
+It searches the normal Valheim local-save directories and Steam userdata locations for `.fch` files that have been synchronized to disk. A character that exists only remotely in Steam Cloud cannot be opened until Steam has downloaded or synchronized a local copy.
 
-**Valheim 1.0 is scheduled for September 9, 2026.** The 1.0 release includes the Deep North and additional game content, so the item catalog will need to be regenerated after compatible 1.0 game data becomes available. Iron Gate also tested save-system changes ahead of 1.0. Their published details focus primarily on world saves, but Wulfpack Forge will still revalidate real 1.0 character `.fch` loading, editing, round-trip verification, backups, and replacement before declaring a post-1.0 build compatible.
+If no character appears:
 
-Until that validation is complete, an item not found in the bundled catalog is treated conservatively: Wulfpack Forge preserves the raw prefab and values rather than assuming the item is invalid. It may be a modded item or a legitimate item from a newer Valheim version.
+1. Make sure Steam is online and synchronization is complete.
+2. Launch Valheim and confirm the character is visible there.
+3. Exit Valheim so the save is no longer in use.
+4. Return to Wulfpack Forge and click **Refresh**.
+5. Use **Browse for Another Save** if you already have the `.fch` file in a custom location.
 
----
+Wulfpack Forge does **not** connect to a remote Steam Cloud API or download saves directly from Valve.
 
-## What You Can Edit
+## Save safety
 
-### Appearance
+Character editing should not require optimism as a recovery plan. Wulfpack Forge uses a preservation-first write path:
 
-Wulfpack Forge opens directly into the appearance-focused experience so common changes are easy to reach.
+- **Valheim process protection.** Writes are blocked while Valheim is running, with a second check immediately before replacement.
+- **Candidate-first compilation.** Edited data is compiled to a temporary `.fch` candidate rather than written over the destination.
+- **Strict SHA-512 verification.** The generated save envelope and checksum are validated.
+- **Round-trip verification.** The candidate is reparsed and compared with the expected serialized data.
+- **Automatic timestamped backup.** Existing destinations are copied before replacement.
+- **Atomic replacement.** The destination changes only after verification succeeds.
+- **Failure-safe behavior.** If verification fails, the existing destination is left untouched.
 
-- Skin color
-- Hair color
-- Beard color
-- Hair style
-- Beard style
-- Character model / appearance options supported by the save format
+Backups are still worth keeping for characters you care about, especially around major game updates or heavily modded saves. The point is that the editor should add protection, not outsource it to the player's memory.
 
-### Inventory
+## Valheim compatibility
 
-- View inventory visually by slot
-- Search the bundled vanilla item catalog by human-readable name or prefab
-- Use a versioned catalog generated from Valheim game data rather than a small hand-maintained list
-- Edit item stack count, durability, quality, variant, and equipped state
-- Automatically apply curated known stack, quality, and variant limits
-- Preserve unknown, modded, or newer-version prefab IDs instead of rejecting them
-- Preserve unusual existing values rather than silently destroying them
+The bundled item catalog is currently generated from **Valheim 0.221.12** data and contains more than 900 player-selectable vanilla items.
 
-Catalog discovery data and save-writing constraints are intentionally separated. Updating the generated item list cannot silently loosen or change stack, quality, or variant limits.
+Valheim 1.0 is scheduled for **September 9, 2026**. Wulfpack Forge will not claim post-1.0 compatibility merely because the application launches. The release gate tracked in [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2) requires a deliberate catalog refresh plus real 1.0 character-save validation, including load, no-op round trip, appearance editing, inventory editing, backup behavior, atomic replacement, and in-game acceptance.
 
-### Skills
+Until that gate passes, unknown items are preserved conservatively. They may be modded content or legitimate items introduced by a newer Valheim build.
 
-View and adjust supported Valheim skill levels through normal UI controls.
+## Item catalog design
 
-### Stats
+The player-facing catalog is generated from JotunnDoc vanilla Valheim item data and committed as `data/valheim_items.json`.
 
-Edit supported character health, stamina, progression, and related values.
+Catalog discovery and save-writing constraints are intentionally separated:
 
-### Character Details
+- the generated catalog supplies names, types, asset identifiers, selectability, and source-version metadata;
+- the curated constraint layer controls known stack, quality, and variant limits;
+- a catalog refresh therefore cannot silently loosen save-writing rules;
+- raw prefab entry remains available for modded and unknown content.
 
-Safely update supported character-level information such as the character name.
+For the current pre-1.0 snapshot:
 
----
+```bash
+python tools/update_item_catalog.py --expected-version 0.221.12
+```
 
-## Finding Your Character
+The generator refuses unexpected source-version drift and suspiciously small catalogs so a game update cannot silently rewrite the application data model.
 
-In most cases, you should not have to find a `.fch` file yourself.
+## Running from source
 
-Wulfpack Forge automatically searches supported Valheim character locations, including local saves and supported Steam-synced locations. Discovered characters are shown with useful metadata such as source, modified time, save version when available, and validation state.
-
-If your character lives somewhere unusual, **Browse for .fch** remains available as a manual fallback.
-
----
-
-## Save Safety
-
-Editing a game save should not require optimism as a recovery strategy. Wulfpack Forge adds several safeguards around writes:
-
-- **Valheim process protection:** saving is blocked while Valheim is running, including a second check immediately before the write.
-- **Candidate-first compilation:** edited data is compiled to a temporary candidate instead of overwriting the destination directly.
-- **Strict SHA-512 verification:** the generated `.fch` envelope and checksum are validated before replacement.
-- **Round-trip verification:** the generated save is reparsed and compared with the expected serialized data.
-- **Automatic timestamped backup:** an existing destination save is copied before replacement.
-- **Atomic replacement:** the destination is replaced only after the new save has passed verification.
-- **Failure-safe behavior:** if verification fails, the destination save is left untouched.
-
-Backups are still worth keeping for anything you care about, but Wulfpack Forge no longer depends on the user remembering to manually make one before every edit.
-
----
-
-## Typical Workflow
-
-1. Close Valheim.
-2. Launch Wulfpack Forge.
-3. Choose a discovered character and click **Open Selected**.
-4. Edit the character using the relevant tabs.
-5. Click **Save Changes**.
-6. Wulfpack Forge verifies the new save and creates a backup of the existing destination before replacement.
-7. Launch Valheim and confirm the changes.
-
-That is the intended normal-user path. No copying save files around by hand should be necessary for standard installations.
-
----
-
-## Running from Source
-
-This section is for developers, contributors, or users who specifically want to run the Python source instead of the packaged desktop build.
+Source installation is intended for contributors, developers, and advanced users.
 
 ### Requirements
 
 - Python 3.9+
 - Git
 
-### Clone this fork
+### Clone
 
 ```bash
-git clone https://github.com/Knapp-Kevin/VikingEditor.git
-cd VikingEditor
+git clone https://github.com/Knapp-Kevin/WulfPackForge.git
+cd WulfPackForge
 ```
 
-### Install dependencies
+### Install
 
 ```bash
 python -m pip install -r requirements.txt
@@ -152,108 +132,94 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
----
+## Building the Windows application
 
-## Refreshing the Valheim Item Catalog
+The repository uses PyInstaller to produce a self-contained Windows executable. The packaging workflow:
 
-The player-facing catalog is generated from JotunnDoc's vanilla Valheim item data and committed as `data/valheim_items.json`.
+- installs application dependencies;
+- runs the automated test suite;
+- builds `WulfpackForge.exe`;
+- bundles the versioned item catalog and Wulfpack Forge banner;
+- smoke-tests the packaged executable;
+- creates a Windows ZIP package;
+- generates SHA-256 checksums;
+- uploads the build as a workflow artifact;
+- publishes release assets for version tags.
 
-For the currently supported pre-1.0 snapshot:
+## Development and validation
 
-```bash
-python tools/update_item_catalog.py --expected-version 0.221.12
-```
+Automated coverage currently includes:
 
-The generator records the source Valheim version and refuses to publish a suspiciously small catalog. If the upstream source reports a different game version than expected, generation fails so a game update cannot silently replace the catalog without review.
+- save-safety behavior;
+- checksum and round-trip verification;
+- local and Steam-synchronized character discovery;
+- item catalog generation and version drift;
+- catalog resolution and duplicate-name behavior;
+- unknown/modded item preservation;
+- offscreen Qt widget behavior;
+- Wulfpack Forge branding asset validation;
+- Python source compilation;
+- packaged Windows executable smoke testing.
 
-When Valheim 1.0 data becomes available, update the expected version deliberately, regenerate the catalog, inspect the diff for new/removed items, and run the full character-save compatibility suite before publishing a 1.0-compatible Wulfpack Forge release.
+The durable product roadmap is [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2).
 
----
-
-## Building the Windows Desktop App
-
-The repository includes a PyInstaller-based Windows packaging workflow. The packaged application is built as a self-contained executable so end users do not need a Python runtime.
-
-The GitHub Actions packaging workflow:
-
-- installs application dependencies
-- runs the test suite
-- builds `WulfpackForge.exe`
-- bundles the versioned Valheim item catalog
-- smoke-tests the packaged executable and catalog
-- creates a Windows ZIP package
-- generates a SHA-256 checksum file
-- uploads the build as a workflow artifact
-- publishes packaged files to GitHub Releases for version tags
-
----
-
-## Development and Validation
-
-The fork includes automated validation for the functionality added beyond the original VikingEditor project, including:
-
-- save-safety behavior
-- checksum and round-trip verification
-- automatic character discovery
-- versioned item catalog resolution
-- unknown/modded/newer-version item preservation
-- offscreen Qt widget behavior
-- Python source compilation
-- packaged Windows executable and bundled-catalog smoke testing
-
-The broader local roadmap is tracked in [issue #2](https://github.com/Knapp-Kevin/VikingEditor/issues/2). The completed player-installation tranche is recorded in [issue #4](https://github.com/Knapp-Kevin/VikingEditor/issues/4).
-
----
-
-## Project Structure
+## Project structure
 
 ```text
-├── main.py                       # Application entry point
+├── main.py
+├── assets/
+│   └── wulfpack-forge-banner.jpg
 ├── data/
-│   ├── items.py                  # Catalog loader + curated safety constraints
-│   └── valheim_items.json       # Generated, versioned vanilla item catalog
+│   ├── items.py
+│   └── valheim_items.json
 ├── tools/
-│   └── update_item_catalog.py    # Version-aware catalog generator
+│   └── update_item_catalog.py
 ├── subscripts/
-│   ├── characterDiscovery.py     # Local and Steam character discovery
-│   ├── fchUtil.py                # Valheim .fch parsing/compilation
-│   ├── playerDataUtil.py         # Inner character data decoding/packing
-│   └── saveSafety.py             # Strict verification, backups, safe replacement
+│   ├── characterDiscovery.py
+│   ├── fchUtil.py
+│   ├── playerDataUtil.py
+│   └── saveSafety.py
 ├── ui/
-│   ├── mainWindow.py             # Main application window and workflow
-│   ├── appearanceTab.py          # Appearance editor
-│   ├── inventoryTab.py           # Inventory editor
-│   ├── skillsTab.py              # Skill editor
-│   ├── statsTab.py               # Stats editor
-│   └── miscTab.py                # Character-level settings
-├── tests/                        # Regression and behavior tests
-└── .github/workflows/            # Test, catalog, and packaging automation
+│   ├── branding.py
+│   ├── mainWindow.py
+│   ├── appearanceTab.py
+│   ├── inventoryTab.py
+│   ├── skillsTab.py
+│   ├── statsTab.py
+│   └── miscTab.py
+├── tests/
+└── .github/workflows/
 ```
 
----
+## Governance and community
 
-## Project Lineage and Attribution
+Wulfpack Forge is intentionally small, but not undocumented. The repository keeps the rules that matter close to the code:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) explains development workflow and contribution expectations.
+- [GOVERNANCE.md](GOVERNANCE.md) defines maintainer authority, safety invariants, compatibility policy, and release gates.
+- [SECURITY.md](SECURITY.md) covers vulnerability and save-integrity reporting.
+- [SUPPORT.md](SUPPORT.md) provides player troubleshooting and support boundaries.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) defines community conduct expectations.
+- [CHANGELOG.md](CHANGELOG.md) records user-facing changes.
+
+Changes that affect save parsing, save writing, compatibility claims, catalog constraints, or release artifacts require evidence appropriate to the risk. A green interface is not proof that a save editor is safe. Unfortunately, software has made this lesson necessary.
+
+## Project lineage and attribution
 
 **Wulfpack Forge** is a modified and expanded derivative of **VikingEditor** by **miskamero**.
 
 Original project: https://github.com/miskamero/VikingEditor
 
-This fork preserves the original project's attribution and is distributed under the **GNU General Public License v3.0 (GPLv3)**. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the applicable terms and attribution requirements.
+This distribution preserves the original project's attribution and is distributed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the applicable terms and attribution requirements.
 
 The name **Wulfpack Forge** is used for this modified distribution so it is clearly distinguished from the original VikingEditor project.
 
----
-
 ## Contributing
 
-Issues and pull requests are welcome in this fork. Contributions should preserve the project's core safety principle: **never make an irreversible save change when a safer path is practical.**
-
-When adding editor functionality, prefer human-readable controls while retaining safe escape hatches for modded or unknown game data.
-
----
+Issues and pull requests are welcome. Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md). The core rule is simple: **never make an irreversible save change when a safer path is practical.**
 
 ## Disclaimer
 
-Wulfpack Forge modifies Valheim character save data. Although the fork performs automatic backup and verification steps, no save editor can guarantee compatibility with every game update, mod, or future save-format change.
+Wulfpack Forge modifies Valheim character save data. No save editor can guarantee compatibility with every game update, mod, or future save-format change.
 
-Keep important saves backed up, especially before major game updates or when working with modded characters.
+Keep important saves backed up, especially before major Valheim updates or when using modded characters.

@@ -8,6 +8,7 @@ on:
       - "ui/**"
       - "subscripts/**"
       - "data/**"
+      - "assets/**"
       - "requirements.txt"
       - "WulfpackForge.spec"
       - ".github/workflows/package-windows.yml"

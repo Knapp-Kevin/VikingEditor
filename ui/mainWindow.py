@@ -2,6 +2,8 @@ import json
 import os
 import tempfile
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import *
 
 from ui.inventoryTab import InventoryTab
@@ -10,6 +12,7 @@ from ui.statsTab import StatsTab
 from ui.appearanceTab import AppearanceTab
 from ui.miscTab import MiscTab
 from ui.valheim_detection import is_valheim_running, valheim_warning_message
+from ui.branding import APP_NAME, APP_SUBTITLE, APP_AUTHOR, APP_WINDOW_TITLE, banner_path
 
 from subscripts.characterDiscovery import discover_character_saves
 from subscripts.fchUtil import compile_fch
@@ -19,9 +22,6 @@ from subscripts.playerDataUtil import (
     unpack_player_data_hex,
     pack_player_data_hex
 )
-
-
-APP_NAME = "Valheim Character Save Editor"
 
 
 class MainWindow(QMainWindow):
@@ -45,13 +45,30 @@ class MainWindow(QMainWindow):
         self.current_fch = None
         self.discovered_characters = []
 
-        self.setWindowTitle(APP_NAME)
-        self.resize(1200, 800)
+        self.setWindowTitle(APP_WINDOW_TITLE)
+        self.resize(1200, 900)
 
         central = QWidget()
         self.setCentralWidget(central)
 
         main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(10)
+
+        self._brand_pixmap = QPixmap(str(banner_path()))
+        self.brand_banner = QLabel()
+        self.brand_banner.setObjectName("brandBanner")
+        self.brand_banner.setFixedHeight(180)
+        self.brand_banner.setAlignment(Qt.AlignCenter)
+        self.brand_banner.setAccessibleName(f"{APP_NAME} banner")
+        self.brand_banner.setAccessibleDescription(
+            f"{APP_NAME}, {APP_SUBTITLE}, by {APP_AUTHOR}."
+        )
+        self.brand_banner.setStyleSheet(
+            "QLabel#brandBanner { background-color: #07151c; border-radius: 8px; }"
+        )
+        main_layout.addWidget(self.brand_banner)
+        self._refresh_brand_banner()
 
         intro = QLabel(
             "Choose your character, make changes in the tabs below, then click Save Changes. "
@@ -64,7 +81,7 @@ class MainWindow(QMainWindow):
         self.character_combo = QComboBox()
         self.character_combo.setMinimumWidth(420)
         self.character_combo.setToolTip(
-            "Verified Valheim character saves discovered from local and Steam Cloud locations."
+            "Verified Valheim character files found on this computer, including local copies synchronized by Steam Cloud."
         )
         self.btn_refresh_characters = QPushButton("Refresh")
         self.btn_open_discovered = QPushButton("Open Character")
@@ -73,6 +90,11 @@ class MainWindow(QMainWindow):
         discovery_layout.addWidget(self.btn_refresh_characters)
         discovery_layout.addWidget(self.btn_open_discovered)
         main_layout.addLayout(discovery_layout)
+
+        self.discovery_help = QLabel()
+        self.discovery_help.setWordWrap(True)
+        self.discovery_help.setVisible(False)
+        main_layout.addWidget(self.discovery_help)
 
         button_layout = QHBoxLayout()
         self.btn_open_save = QPushButton("Browse for Another Save")
@@ -109,19 +131,51 @@ class MainWindow(QMainWindow):
 
         self.refresh_discovered_characters()
 
+    def _refresh_brand_banner(self):
+        if self._brand_pixmap.isNull():
+            self.brand_banner.setText(f"{APP_NAME}\n{APP_SUBTITLE}\nby {APP_AUTHOR}")
+            return
+
+        target = self.brand_banner.size()
+        if target.width() <= 0 or target.height() <= 0:
+            return
+
+        scaled = self._brand_pixmap.scaled(
+            target,
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation,
+        )
+        x = max(0, (scaled.width() - target.width()) // 2)
+        y = max(0, (scaled.height() - target.height()) // 2)
+        cropped = scaled.copy(x, y, target.width(), target.height())
+        self.brand_banner.setPixmap(cropped)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "brand_banner"):
+            self._refresh_brand_banner()
+
     def refresh_discovered_characters(self):
         previous_path = self.current_fch
         self.discovered_characters = discover_character_saves()
         self.character_combo.clear()
 
         if not self.discovered_characters:
-            self.character_combo.addItem("No Valheim character saves discovered", None)
+            self.character_combo.addItem("No local Valheim character files found", None)
             self.btn_open_discovered.setEnabled(False)
             self.character_combo.setToolTip(
-                "No saves were found automatically. Use 'Browse for Another Save' for a custom location."
+                "Wulfpack Forge can only open character files that exist on this computer."
             )
+            self.discovery_help.setText(
+                "No local character files were found. If this character is stored in Steam Cloud, "
+                "make sure Steam has synchronized it to this computer and that Valheim can see it locally, "
+                "then click Refresh. Wulfpack Forge does not download saves directly from Steam Cloud. "
+                "Use Browse for Another Save if you already have the .fch file elsewhere."
+            )
+            self.discovery_help.setVisible(True)
             return
 
+        self.discovery_help.setVisible(False)
         selected_index = 0
         for index, character in enumerate(self.discovered_characters):
             self.character_combo.addItem(character.display_label, character.path)
@@ -261,7 +315,7 @@ class MainWindow(QMainWindow):
                 mode="w",
                 encoding="utf-8",
                 suffix=".json",
-                prefix="valheim-character-editor-",
+                prefix="wulfpack-forge-",
                 delete=False
             ) as wrapper_file:
                 json.dump(self.root_save, wrapper_file, indent=4, ensure_ascii=False)
@@ -270,7 +324,7 @@ class MainWindow(QMainWindow):
             destination_dir = os.path.dirname(os.path.abspath(filename))
             with tempfile.NamedTemporaryFile(
                 suffix=".fch",
-                prefix=".valheim-character-editor-",
+                prefix=".wulfpack-forge-",
                 dir=destination_dir,
                 delete=False
             ) as candidate_file:

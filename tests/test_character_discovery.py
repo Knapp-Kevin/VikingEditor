@@ -56,7 +56,7 @@ class CharacterDiscoveryTests(unittest.TestCase):
                     os.environ["STEAM_DIR"] = previous
 
             self.assertIn((local_dir.resolve(), "Local"), directories)
-            self.assertIn((cloud_dir.resolve(), "Steam Cloud"), directories)
+            self.assertIn((cloud_dir.resolve(), "Steam Cloud (local copy)"), directories)
 
     def test_discovery_returns_verified_character_metadata(self):
         with tempfile.TemporaryDirectory() as temp_dir:
