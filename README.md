@@ -14,26 +14,17 @@
 
 Wulfpack Forge is a player-first desktop editor for Valheim character saves. It is designed for the person who wants to change a beard, hair color, inventory item, skill, or stat without learning Python, searching obscure save folders, or gambling a character file on a direct overwrite.
 
-The normal path is deliberately simple: download the Windows build, open a character that exists locally, make changes, and click **Save Changes**. Underneath that simple workflow, Wulfpack Forge verifies save structure and checksums, creates a protected workspace snapshot and working copy, detects outside changes to the active character, blocks writes while Valheim is running, backs up the active save, and only replaces it after the edited candidate passes validation.
+Once the first public Windows release is published, the intended player path is deliberately simple: download the Windows build, open a character that exists locally, make changes, and click **Save Changes**. Underneath that workflow, Wulfpack Forge verifies save structure and checksums, creates a protected workspace snapshot and working copy, detects outside changes to the active character, blocks writes while Valheim is running, backs up the active save, and only replaces it after the edited candidate passes validation.
 
 > **Unofficial community software.** Wulfpack Forge is not affiliated with, authorized by, or endorsed by Iron Gate Studio or Coffee Stain Publishing.
 
-## Quick start
+## Current availability
 
-### Windows players
+**No public Windows release has been published yet.** The Windows workflow builds and smoke-tests `WulfpackForge.exe` and `WulfpackForge-windows-x64.zip`, but its temporary GitHub Actions artifacts are validation evidence, not durable public releases.
 
-1. Open the repository's [Releases](https://github.com/Knapp-Kevin/WulfPackForge/releases) page.
-2. Download `WulfpackForge-windows-x64.zip` or `WulfpackForge.exe` from the latest published release.
-3. Extract the ZIP if needed.
-4. Close Valheim.
-5. Launch `WulfpackForge.exe`.
-6. Select a discovered character or browse to a `.fch` file.
-7. Check the compact character status, make your edits, and click **Save Changes**.
-8. Wulfpack Forge verifies the working copy, confirms the active source has not changed, backs up the current active save, and applies the edit.
+For now, contributors and advanced users can use [Running from source](#running-from-source). That path requires Python. Ordinary Windows players should wait for the first published release rather than downloading an unverified binary from somewhere else.
 
-**No Python, Git, `pip`, or command prompt is required for the packaged Windows build.**
-
-If a packaged release has not been published yet, the source-install path remains available for developers and advanced users under [Running from source](#running-from-source).
+The first public release remains gated on the Valheim 1.0 compatibility work in [issue #2](https://github.com/Knapp-Kevin/WulfPackForge/issues/2). When that gate passes, the packaged Windows build will provide the no-Python download-and-run experience described above.
 
 ## See it in action
 
