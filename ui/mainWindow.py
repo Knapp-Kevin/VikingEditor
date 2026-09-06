@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import tempfile
@@ -11,12 +12,19 @@ from ui.skillsTab import SkillsTab
 from ui.statsTab import StatsTab
 from ui.appearanceTab import AppearanceTab
 from ui.miscTab import MiscTab
+from ui.saveStatusWidget import SaveStatusWidget
 from ui.valheim_detection import is_valheim_running, valheim_warning_message
 from ui.branding import APP_NAME, APP_SUBTITLE, APP_AUTHOR, APP_WINDOW_TITLE, banner_path
 
 from subscripts.characterDiscovery import discover_character_saves
 from subscripts.fchUtil import compile_fch
+from subscripts.saveHealth import build_save_health_report
 from subscripts.saveSafety import replace_verified_save, verify_fch_round_trip
+from subscripts.workspace import (
+    SourceChangedError,
+    create_workspace_session,
+    store_verified_working_copy,
+)
 
 from subscripts.playerDataUtil import (
     unpack_player_data_hex,
@@ -41,12 +49,16 @@ class MainWindow(QMainWindow):
             msg.exec()
 
         self.root_save = None
+        self.opened_root = None
         self.player_data = None
         self.current_fch = None
+        self.current_source = "Local file"
+        self.current_modified_at = None
+        self.workspace_session = None
         self.discovered_characters = []
 
         self.setWindowTitle(APP_WINDOW_TITLE)
-        self.resize(1200, 900)
+        self.resize(1200, 940)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -72,7 +84,7 @@ class MainWindow(QMainWindow):
 
         intro = QLabel(
             "Choose your character, make changes in the tabs below, then click Save Changes. "
-            "Existing saves are backed up and verified automatically."
+            "Wulfpack Forge keeps a protected working copy and backs up the active save before replacement."
         )
         intro.setWordWrap(True)
         main_layout.addWidget(intro)
@@ -100,6 +112,9 @@ class MainWindow(QMainWindow):
         self.btn_open_save = QPushButton("Browse for Another Save")
         self.btn_save_save = QPushButton("Save Changes")
         self.btn_save_save.setEnabled(False)
+        self.btn_save_save.setToolTip(
+            "Verify the edited working copy, confirm the active file has not changed externally, back it up, then apply changes."
+        )
         button_layout.addWidget(self.btn_open_save)
         button_layout.addStretch(1)
         button_layout.addWidget(self.btn_save_save)
@@ -107,6 +122,9 @@ class MainWindow(QMainWindow):
 
         self.file_label = QLabel("No character loaded")
         main_layout.addWidget(self.file_label)
+
+        self.save_status = SaveStatusWidget()
+        main_layout.addWidget(self.save_status)
 
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
@@ -154,6 +172,42 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         if hasattr(self, "brand_banner"):
             self._refresh_brand_banner()
+
+    def _metadata_for_path(self, filename):
+        normalized = os.path.normcase(os.path.abspath(filename))
+        for character in self.discovered_characters:
+            if os.path.normcase(os.path.abspath(character.path)) == normalized:
+                return character.source, character.modified_at
+
+        try:
+            modified_at = os.path.getmtime(filename)
+        except OSError:
+            modified_at = None
+        return "Manual file", modified_at
+
+    def _set_health(
+        self,
+        *,
+        valid,
+        version,
+        source=None,
+        modified_at=None,
+        error=None,
+        backup_path=None,
+        source_changed=False,
+    ):
+        report = build_save_health_report(
+            valid=valid,
+            version=version,
+            source=source or self.current_source,
+            modified_at=self.current_modified_at if modified_at is None else modified_at,
+            error=error,
+            backup_path=backup_path,
+            source_changed=source_changed,
+        )
+        self.save_status.set_report(report)
+        self.btn_save_save.setEnabled(bool(self.root_save and self.player_data and report.writable))
+        return report
 
     def refresh_discovered_characters(self):
         previous_path = self.current_fch
@@ -211,10 +265,18 @@ class MainWindow(QMainWindow):
             self.load_save_file(filename)
 
     def load_save_file(self, filename):
+        source, modified_at = self._metadata_for_path(filename)
         try:
             root_save = verify_fch_round_trip(filename)
             player_hex = root_save.get("player_data_hex")
             if not player_hex:
+                self._set_health(
+                    valid=False,
+                    version=root_save.get("version"),
+                    source=source,
+                    modified_at=modified_at,
+                    error="The save container contains no editable player data.",
+                )
                 QMessageBox.warning(
                     self,
                     "Character Has No Player Data",
@@ -223,10 +285,15 @@ class MainWindow(QMainWindow):
                 return
 
             player_data = unpack_player_data_hex(player_hex)
+            workspace_session = create_workspace_session(filename, root_save)
 
             self.root_save = root_save
+            self.opened_root = copy.deepcopy(root_save)
             self.player_data = player_data
-            self.current_fch = filename
+            self.current_fch = os.path.abspath(filename)
+            self.current_source = source
+            self.current_modified_at = modified_at
+            self.workspace_session = workspace_session
 
             self.inventory_tab.load_data(self.player_data)
             self.skills_tab.load_data(self.player_data)
@@ -237,16 +304,35 @@ class MainWindow(QMainWindow):
             self.file_label.setText(
                 f"Editing: {self.root_save.get('character_name')}  •  {os.path.basename(filename)}"
             )
-            self.btn_save_save.setEnabled(True)
+            self._set_health(
+                valid=True,
+                version=self.root_save.get("version"),
+                source=source,
+                modified_at=modified_at,
+            )
             self.tabs.setCurrentWidget(self.appearance_tab)
             self.refresh_discovered_characters()
 
-        except Exception as e:
+        except Exception as exc:
+            self.root_save = None
+            self.opened_root = None
+            self.player_data = None
+            self.current_fch = None
+            self.workspace_session = None
+            self.btn_save_save.setEnabled(False)
+            self.file_label.setText("No character loaded")
+            self._set_health(
+                valid=False,
+                version=None,
+                source=source,
+                modified_at=modified_at,
+                error=str(exc),
+            )
             QMessageBox.critical(
                 self,
                 "Character Could Not Be Opened",
-                "This save was not loaded because it could not be verified and parsed safely."
-                f"\n\n{str(e)}"
+                "This save was not loaded because it could not be verified, parsed, and protected safely."
+                f"\n\n{str(exc)}"
             )
 
     def open_save_file(self):
@@ -271,9 +357,23 @@ class MainWindow(QMainWindow):
         )
         return True
 
+    def _mark_external_change(self, message):
+        try:
+            modified_at = os.path.getmtime(self.current_fch) if self.current_fch else None
+        except OSError:
+            modified_at = None
+        self.current_modified_at = modified_at
+        self._set_health(
+            valid=True,
+            version=self.root_save.get("version") if self.root_save else None,
+            modified_at=modified_at,
+            error=message,
+            source_changed=True,
+        )
+
     def save_save_file(self):
-        """Pack, verify, back up, and safely replace the active Valheim save."""
-        if not self.root_save or not self.player_data:
+        """Verify a working copy, guard the active source, back it up, and apply changes."""
+        if not self.root_save or not self.player_data or not self.workspace_session or not self.current_fch:
             QMessageBox.warning(self, "No Character Loaded", "Open a character before saving changes.")
             return
 
@@ -284,29 +384,14 @@ class MainWindow(QMainWindow):
         candidate_path = None
 
         try:
+            # Detect Steam, Valheim, another editor, or any other source mutation before doing write work.
+            self.workspace_session.assert_source_unchanged()
+
             self.inventory_tab.save_changes()
             self.skills_tab.save_changes()
             self.stats_tab.save_changes()
             self.appearance_tab.save_changes()
             self.misc_tab.save_changes()
-
-            char_name = self.root_save.get("character_name", "Viking").strip()
-            suggested_filename = f"{char_name.lower()}.fch"
-
-            default_dir = os.path.dirname(self.current_fch) if self.current_fch else ""
-            default_save_path = os.path.join(default_dir, suggested_filename)
-
-            filename, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save Character Changes",
-                default_save_path,
-                "Valheim Character (*.fch)"
-            )
-            if not filename:
-                return
-
-            if self._block_save_if_valheim_running():
-                return
 
             updated_hex_payload = pack_player_data_hex(self.player_data)
             self.root_save["player_data_hex"] = updated_hex_payload
@@ -321,7 +406,7 @@ class MainWindow(QMainWindow):
                 json.dump(self.root_save, wrapper_file, indent=4, ensure_ascii=False)
                 temp_wrapper_path = wrapper_file.name
 
-            destination_dir = os.path.dirname(os.path.abspath(filename))
+            destination_dir = os.path.dirname(self.current_fch)
             with tempfile.NamedTemporaryFile(
                 suffix=".fch",
                 prefix=".wulfpack-forge-",
@@ -331,29 +416,67 @@ class MainWindow(QMainWindow):
                 candidate_path = candidate_file.name
 
             compile_fch(temp_wrapper_path, candidate_path)
+            verify_fch_round_trip(candidate_path, expected_root=self.root_save)
+
+            # Keep a durable, verified working copy inside the Wulfpack Forge workspace first.
+            store_verified_working_copy(
+                candidate_path,
+                self.workspace_session,
+                expected_root=self.root_save,
+            )
+
+            if self._block_save_if_valheim_running():
+                return
 
             backup_path = replace_verified_save(
                 candidate_path,
-                filename,
-                expected_root=self.root_save
+                self.current_fch,
+                expected_root=self.root_save,
+                backup_directory=self.workspace_session.backups_dir,
+                expected_destination_sha256=self.workspace_session.expected_source_sha256,
             )
             candidate_path = None
+            self.workspace_session.update_after_apply(backup_path)
+            self.opened_root = copy.deepcopy(self.root_save)
 
-            success_text = f"Changes saved safely to:\n{filename}"
+            try:
+                self.current_modified_at = os.path.getmtime(self.current_fch)
+            except OSError:
+                self.current_modified_at = None
+
+            self._set_health(
+                valid=True,
+                version=self.root_save.get("version"),
+                modified_at=self.current_modified_at,
+                backup_path=backup_path,
+            )
+
+            success_text = f"Changes applied safely to:\n{self.current_fch}"
             if backup_path:
-                success_text += f"\n\nPrevious save backed up to:\n{backup_path}"
-            success_text += "\n\nThe new save passed checksum and round-trip verification."
+                success_text += f"\n\nPrevious save backed up in the Wulfpack Forge workspace:\n{backup_path}"
+            success_text += (
+                "\n\nThe working copy passed checksum and round-trip verification, and the active file "
+                "was confirmed unchanged before replacement."
+            )
 
             QMessageBox.information(self, "Changes Saved", success_text)
-            self.current_fch = filename
             self.refresh_discovered_characters()
 
-        except Exception as e:
+        except SourceChangedError as exc:
+            self._mark_external_change(str(exc))
+            QMessageBox.critical(
+                self,
+                "Character Changed Outside Wulfpack Forge",
+                f"{str(exc)}\n\nYour active character was not replaced. Reload it before applying these edits."
+            )
+        except Exception as exc:
+            if "changed after it was opened" in str(exc) or "disappeared after it was opened" in str(exc):
+                self._mark_external_change(str(exc))
             QMessageBox.critical(
                 self,
                 "Changes Were Not Saved",
-                "The existing destination was not replaced unless verification completed successfully."
-                f"\n\n{str(e)}"
+                "The active character was not replaced unless every verification and source-consistency check completed successfully."
+                f"\n\n{str(exc)}"
             )
         finally:
             for temp_path in (temp_wrapper_path, candidate_path):
