@@ -13,7 +13,10 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QPalette
 from data.appearance import BEARD_NONE, HAIR_NONE, VALHEIM_BEARDS, VALHEIM_HAIRS, display_key
 from ui.fieldTracker import FieldTracker, select_or_add_unknown
+from ui.appearancePreview import AppearancePreview
 from ui.glyphs import populate_appearance_combo
+
+COMBO_ICON = QSize(72, 72)
 
 
 def _to_qcolor(rgb_list) -> QColor:
@@ -28,7 +31,15 @@ class AppearanceTab(QWidget):
         self.player_data = None
         self.tracker = FieldTracker()
 
-        main_layout = QVBoxLayout(self)
+        outer = QHBoxLayout(self)
+        main_layout = QVBoxLayout()
+        outer.addLayout(main_layout, 1)
+        preview_group = QGroupBox("Preview")
+        preview_layout = QVBoxLayout(preview_group)
+        self.preview = AppearancePreview()
+        preview_layout.addWidget(self.preview)
+        preview_layout.addStretch()
+        outer.addWidget(preview_group, 0)
 
         style_group = QGroupBox("Physical Customization")
         style_layout = QFormLayout(style_group)
@@ -38,11 +49,11 @@ class AppearanceTab(QWidget):
         self.model_combo.addItem("Female (Model 1)", 1)
 
         self.hair_combo = QComboBox()
-        self.hair_combo.setIconSize(QSize(48, 48))
+        self.hair_combo.setIconSize(COMBO_ICON)
         populate_appearance_combo(self.hair_combo, VALHEIM_HAIRS, "hair")
 
         self.beard_combo = QComboBox()
-        self.beard_combo.setIconSize(QSize(48, 48))
+        self.beard_combo.setIconSize(COMBO_ICON)
         populate_appearance_combo(self.beard_combo, VALHEIM_BEARDS, "beard")
 
         style_layout.addRow("Gender Model:", self.model_combo)
@@ -84,10 +95,21 @@ class AppearanceTab(QWidget):
         self.btn_skin_color.clicked.connect(self.choose_skin_color)
         self.btn_hair_color.clicked.connect(self.choose_hair_color)
         self.model_combo.currentIndexChanged.connect(self.on_model_changed)
+        self.hair_combo.currentIndexChanged.connect(self.refresh_preview)
+        self.beard_combo.currentIndexChanged.connect(self.refresh_preview)
+        self.refresh_preview()
 
     def on_model_changed(self, index):
         # The female model has no beard in game; the stored value is still preserved.
         self.beard_combo.setEnabled(self.model_combo.currentData() == 0)
+        self.refresh_preview()
+
+    def refresh_preview(self, *_args):
+        """Redraw the head from the current widget state; never reads or writes player_data."""
+        self.preview.update_preview(
+            self.hair_combo.currentData(), self.beard_combo.currentData(),
+            self.current_skin_rgb, self.current_hair_rgb, self.model_combo.currentData(),
+        )
 
     def load_data(self, player_data):
         self.tracker.clear()
@@ -105,6 +127,8 @@ class AppearanceTab(QWidget):
         self.update_color_preview(self.skin_preview, self.current_skin_rgb)
         self.update_color_preview(self.hair_preview, self.current_hair_rgb)
 
+        self.refresh_preview()
+
         self.tracker.remember("model_index", self.model_combo.currentData())
         self.tracker.remember("hair", self.hair_combo.currentData())
         self.tracker.remember("beard", self.beard_combo.currentData())
@@ -121,12 +145,14 @@ class AppearanceTab(QWidget):
         if color.isValid():
             self.current_skin_rgb = [color.red() / 255.0, color.green() / 255.0, color.blue() / 255.0]
             self.update_color_preview(self.skin_preview, self.current_skin_rgb)
+            self.refresh_preview()
 
     def choose_hair_color(self):
         color = QColorDialog.getColor(_to_qcolor(self.current_hair_rgb), self, "Select Hair/Beard Color")
         if color.isValid():
             self.current_hair_rgb = [color.red() / 255.0, color.green() / 255.0, color.blue() / 255.0]
             self.update_color_preview(self.hair_preview, self.current_hair_rgb)
+            self.refresh_preview()
 
     def save_changes(self):
         if not self.player_data:

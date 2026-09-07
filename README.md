@@ -54,16 +54,16 @@ Inventory editing combines the familiar character grid with original item-catego
 
 | Area | Capabilities |
 |---|---|
-| Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings |
+| Appearance | Skin color, hair color, beard color, hair style, beard style, and supported model settings, with a live head preview that updates as you choose |
 | Inventory | Large illustrated grid with stack and quality badges, drag-and-drop to move or swap items, and an Equipped panel showing what occupies each slot; item picker organised by category, then type, then material (Weapons > Swords > Bronze) with counts, a breadcrumb, and clothing, accessories, and creature gear kept apart from armour; search, raw prefab entry for modded items; stacks, durability, quality, styles where an item has them, and equipped state with the game's one-item-per-slot rule |
-| Skills | Supported Valheim skill levels, including adding vanilla skills the character does not have yet |
+| Skills | Supported Valheim skill levels, including adding one or all vanilla skills the character does not have yet |
 | Stats | Supported health, stamina, progression, and related character values |
 | Character details | Supported character-level fields such as name |
 | New characters | Create a brand-new character (name, model, hair, beard, colours) with the game's starting defaults, then edit it like any other |
 
 ### Creating a character
 
-**New Character** on the main window writes a fresh `.fch` file into the Valheim characters folder you choose, using the exact defaults the game writes for a new character (starting torch and rag tunic, no skills yet, first-spawn intro pending). The file is verified before it is placed, an existing character with the same name is never overwritten, and the new character opens in the editor immediately. Use the Skills tab's **Add Skill** to give it any vanilla skill.
+**New Character** on the main window writes a fresh `.fch` file into the Valheim characters folder you choose, using the exact defaults the game writes for a new character (starting torch and rag tunic, no skills yet, first-spawn intro pending). The file is verified before it is placed, an existing character with the same name is never overwritten, and the new character opens in the editor immediately. Use the Skills tab's **Add Skill** or **Add All Skills** to give it vanilla skills.
 
 Compatibility status for created characters is **Compatibility unverified** until a character created by Wulfpack Forge has been loaded in Valheim as part of the release evidence; the file layout is byte-for-byte the layout of a character created in-game on the same build.
 

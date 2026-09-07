@@ -51,7 +51,7 @@ class ItemPickerDialogTests(unittest.TestCase):
         self.assertIn("SwordIron", _grid_prefabs(dialog))
         dialog.close()
 
-    def test_clothing_and_creature_gear_are_separate(self):
+    def test_clothing_separate_and_creature_gear_absent(self):
         dialog = ItemPickerDialog()
         dialog.select_group("Clothing and Hats")
         prefabs = _grid_prefabs(dialog)
@@ -59,10 +59,12 @@ class ItemPickerDialogTests(unittest.TestCase):
         self.assertNotIn("ArmorFenringChest", prefabs)
         row = dialog.grid.item(prefabs.index("ArmorDress4"))
         self.assertIn("clothing", row.toolTip().lower())
-        dialog.select_group("Creature and Internal")
-        self.assertIn("GoblinArmband", _grid_prefabs(dialog))
+        dialog.search.setText("goblin")
+        self.assertNotIn("GoblinArmband", _grid_prefabs(dialog))
+        dialog.search.setText("log")
+        self.assertNotIn("troll_log_swing_h", _grid_prefabs(dialog))
         last = dialog.categories.topLevelItem(dialog.categories.topLevelItemCount() - 2).data(0, Qt.UserRole)[0]
-        self.assertEqual(last, "Creature and Internal")
+        self.assertEqual(last, "Misc")
         dialog.close()
 
     def test_selecting_weapons_shows_sword_with_icon(self):
